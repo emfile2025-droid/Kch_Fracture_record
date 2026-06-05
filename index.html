@@ -1,0 +1,2382 @@
+<!DOCTYPE html>
+<!-- 2026-06-05 | v1.0.0 | iPhone専用版 index.html -->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="骨折分類マップ">
+<title>骨折分類マップ v1.0.0</title>
+<style>
+:root {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --card2: #f8f8fb;
+  --border: #d1d1d6;
+  --border2: #aeaeb2;
+  --text: #1c1c1e;
+  --text2: #48484a;
+  --text3: #8e8e93;
+  --accent: #007aff;
+  --accent-dk: #0056b3;
+  --accent-red: #ff3b30;
+  --accent-green: #34c759;
+  --accent-amber: #ff9500;
+  --accent-purple: #af52de;
+  --tag-op: #fff0ef;
+  --tag-op-t: #c0392b;
+  --tag-con: #edfbf1;
+  --tag-con-t: #1a7a3a;
+  --tag-dep: #fff8ec;
+  --tag-dep-t: #8a5a00;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, 'Hiragino Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+
+/* ===== アプリシェル ===== */
+#app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* ===== ナビゲーションバー ===== */
+#nav-bar {
+  flex-shrink: 0;
+  height: 44px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  position: relative;
+  z-index: 100;
+}
+#nav-back {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 400;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#nav-back.show { display: flex; }
+#nav-back svg { width: 10px; height: 17px; }
+#nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+#nav-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.nav-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nav-btn-ghost {
+  background: none;
+  color: var(--accent);
+}
+.nav-btn-red {
+  background: var(--tag-op);
+  color: var(--accent-red);
+}
+.nav-btn-green {
+  background: var(--tag-con);
+  color: var(--accent-green);
+}
+
+/* ===== スクリーンスタック ===== */
+#screen-stack {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.screen {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  will-change: transform;
+}
+.screen.active { transform: translateX(0); }
+.screen.behind  { transform: translateX(-25%); }
+
+/* ===== SCREEN 1: 部位選択 ===== */
+#screen-bones { transform: translateX(0); }
+
+.cat-tabs {
+  display: flex;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tab {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cat-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+
+.search-bar {
+  padding: 8px 12px;
+  background: var(--bg);
+  position: sticky;
+  top: 41px;
+  z-index: 9;
+}
+.search-bar input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--text);
+  outline: none;
+}
+.search-bar input::placeholder { color: var(--text3); }
+.search-icon {
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text3);
+  font-size: 14px;
+  pointer-events: none;
+}
+.search-bar { position: relative; }
+
+.bone-list { padding: 6px 0 20px; }
+.bone-row {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  min-height: 52px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  gap: 10px;
+  transition: background 0.1s;
+}
+.bone-row:active { background: #e8e8ed; }
+.bone-row.has-data { background: #f0f6ff; }
+.bone-icon-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.bone-row-name { flex: 1; font-size: 15px; font-weight: 500; }
+.bone-row-ao {
+  font-size: 12px;
+  color: var(--text3);
+  background: var(--bg);
+  border-radius: 5px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+.bone-row.has-data .bone-row-ao {
+  background: #dceeff;
+  color: var(--accent);
+}
+.bone-row-chevron { color: var(--text3); font-size: 14px; }
+.bone-row-check { color: var(--accent); font-size: 16px; font-weight: 700; }
+
+.cat-section-label {
+  padding: 20px 16px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: var(--bg);
+}
+
+/* ===== SCREEN 2: 分類選択 ===== */
+.bone-overview-box {
+  background: var(--card2);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+.lr-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--bg);
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.lr-label { font-size: 13px; color: var(--text3); }
+.lr-seg {
+  display: flex;
+  background: var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.lr-seg-btn {
+  padding: 5px 20px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  background: none;
+  cursor: pointer;
+}
+.lr-seg-btn.active {
+  background: var(--card);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+/* 分類アコーディオン */
+.classif-section { padding: 8px 0 80px; }
+.classif-card-wrap { margin-bottom: 1px; }
+.classif-acc-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--card);
+  cursor: pointer;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.classif-acc-header:active { background: #e8e8ed; }
+.classif-acc-badge {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  flex-shrink: 0;
+}
+.classif-acc-info { flex: 1; }
+.classif-acc-name { font-size: 15px; font-weight: 600; }
+.classif-acc-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+.classif-acc-chevron {
+  color: var(--text3); font-size: 14px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.classif-acc-chevron.open { transform: rotate(90deg); }
+
+.classif-acc-body {
+  display: none;
+  background: var(--card);
+  padding: 12px 16px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.classif-acc-body.open { display: block; }
+.classif-desc-text {
+  font-size: 13px;
+  color: var(--text2);
+  background: var(--bg);
+  border-left: 3px solid var(--border2);
+  padding: 8px 10px;
+  border-radius: 0 6px 6px 0;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.grade-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.grade-btn-ios {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.grade-btn-ios:active { transform: scale(0.97); }
+.grade-btn-ios.selected {
+  background: #e8f2ff;
+  border-color: var(--accent);
+}
+.grade-btn-grade {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.grade-btn-ios.selected .grade-btn-grade { color: var(--accent); }
+.grade-btn-name {
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.3;
+}
+.grade-btn-desc {
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.3;
+}
+.grade-btn-surg {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-top: 2px;
+  align-self: flex-start;
+}
+.surg-op  { background: var(--tag-op);  color: var(--tag-op-t); }
+.surg-con { background: var(--tag-con); color: var(--tag-con-t); }
+.surg-dep { background: var(--tag-dep); color: var(--tag-dep-t); }
+
+.memo-box {
+  font-size: 12px;
+  background: #eef5ff;
+  color: #1a3a6a;
+  border-radius: 8px;
+  padding: 9px 11px;
+  line-height: 1.7;
+  margin-top: 10px;
+}
+
+/* プレビューバー（Screen 2 固定フッター） */
+#preview-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
+  padding: 0 0 var(--safe-bottom);
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  z-index: 50;
+  display: none;
+}
+#preview-bar.show { display: block; }
+#preview-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+#preview-text-ios {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+  min-height: 20px;
+}
+#preview-confirm-btn {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ===== SCREEN 3: 結果 ===== */
+#screen-result { }
+.result-body { padding: 12px 16px 100px; }
+.result-tree-box {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 14px 14px;
+  font-size: 14px;
+  white-space: pre-wrap;
+  font-family: -apple-system, 'Hiragino Sans', monospace;
+  line-height: 1.8;
+  color: var(--text);
+  margin-bottom: 12px;
+  min-height: 80px;
+  border: 1px solid var(--border);
+}
+.result-empty {
+  color: var(--text3);
+  font-style: italic;
+  font-size: 13px;
+}
+.result-item-list { margin-bottom: 12px; }
+.result-item {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+}
+.result-item-num {
+  width: 22px; height: 22px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.result-item-text {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+.result-item-del {
+  width: 28px; height: 28px;
+  border: none; background: #fee;
+  color: var(--accent-red);
+  border-radius: 7px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.result-actions {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 10px 16px var(--safe-bottom);
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+.result-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.result-btn-add { background: #e8f2ff; color: var(--accent); }
+.result-btn-copy { background: var(--accent); color: white; }
+.result-btn-new { background: var(--tag-con); color: var(--accent-green); }
+
+/* ===== 脊椎専用UI ===== */
+.spine-region-tabs {
+  display: flex;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.spine-rtab {
+  flex: 1;
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.spine-rtab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+.spine-level-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg);
+}
+.spine-lvl-btn {
+  padding: 10px 4px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  text-align: center;
+  cursor: pointer;
+}
+.spine-lvl-btn.on {
+  background: var(--accent);
+  border-color: var(--accent-dk);
+  color: white;
+}
+.spine-card {
+  background: var(--card);
+  margin: 0 0 1px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px 12px;
+}
+.spine-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+.spine-card-level {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent);
+}
+.spine-card-summary {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  border-radius: 5px;
+  padding: 3px 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.spine-card-del {
+  width: 24px; height: 24px;
+  border: none; background: #fee;
+  color: var(--accent-red);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.spine-morph-section { margin-bottom: 8px; }
+.spine-morph-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+.spine-morph-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.spine-morph-btn {
+  padding: 5px 9px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  cursor: pointer;
+  min-width: 36px;
+  text-align: center;
+}
+.spine-morph-btn.sel { background: #e8f2ff; border-color: var(--accent); color: var(--accent); }
+.spine-morph-btn.selA { background: #fff8ec; border-color: var(--accent-amber); color: var(--accent-amber); }
+.spine-morph-btn.selB { background: var(--tag-op); border-color: var(--accent-red); color: var(--accent-red); }
+.spine-morph-btn.selC { background: #f5eeff; border-color: var(--accent-purple); color: var(--accent-purple); }
+.spine-desc-box {
+  font-size: 11px;
+  color: var(--text2);
+  background: var(--bg);
+  border-left: 3px solid var(--accent);
+  padding: 5px 8px;
+  border-radius: 0 5px 5px 0;
+  margin-top: 5px;
+  line-height: 1.5;
+  display: none;
+}
+.spine-desc-box.show { display: block; }
+.spine-nm-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+.spine-nm-col { flex: 1; }
+.spine-nm-desc { border-left-color: var(--accent-green); }
+
+/* toast */
+#toast {
+  position: fixed;
+  bottom: calc(60px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(44,44,46,0.92);
+  color: white;
+  padding: 9px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.25s;
+  z-index: 999;
+  pointer-events: none;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="app">
+
+  <!-- ナビゲーションバー -->
+  <div id="nav-bar">
+    <button id="nav-back" onclick="goBack()">
+      <svg viewBox="0 0 10 17" fill="none"><path d="M9 1L1 8.5L9 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      戻る
+    </button>
+    <span id="nav-title">骨折分類マップ</span>
+    <div id="nav-actions">
+      <button class="nav-btn nav-btn-red" onclick="resetAll()">リセット</button>
+      <button class="nav-btn nav-btn-green" onclick="resetSelection()">新規症例</button>
+    </div>
+  </div>
+
+  <!-- スクリーンスタック -->
+  <div id="screen-stack">
+
+    <!-- SCREEN 1: 部位選択 -->
+    <div class="screen active" id="screen-bones">
+      <div class="cat-tabs" id="cat-tabs"></div>
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="部位・分類名を検索..." oninput="onSearch(this.value)">
+      </div>
+      <div class="bone-list" id="bone-list"></div>
+    </div>
+
+    <!-- SCREEN 2: 分類選択 -->
+    <div class="screen" id="screen-classif">
+      <!-- 動的生成 -->
+    </div>
+
+    <!-- SCREEN 3: 結果 -->
+    <div class="screen" id="screen-result">
+      <div class="result-body">
+        <div style="font-size:13px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.6px;">生成テキスト</div>
+        <div class="result-tree-box" id="result-tree">
+          <span class="result-empty">部位を選んで分類を選択してください</span>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--text3);margin-bottom:8px;margin-top:16px;text-transform:uppercase;letter-spacing:0.6px;">損傷一覧</div>
+        <div class="result-item-list" id="result-items"></div>
+      </div>
+      <div class="result-actions">
+        <button class="result-btn result-btn-add" onclick="goBack()">← 追加</button>
+        <button class="result-btn result-btn-copy" onclick="copyOutput()">コピー</button>
+        <button class="result-btn result-btn-new" onclick="resetSelection()">新規</button>
+      </div>
+    </div>
+
+  </div><!-- /screen-stack -->
+
+  <!-- プレビューバー（Screen 2） -->
+  <div id="preview-bar">
+    <div id="preview-bar-inner">
+      <span id="preview-text-ios">— 分類を選んでください</span>
+      <button id="preview-confirm-btn" onclick="goToResult()">結果へ →</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+<script>
+const BONES = {
+
+clavicle: {
+  name: "鎖骨骨折", iconClass:"icon-bone", ao:"AO 15",
+  overview:"鎖骨は上肢帯の支柱。骨折は外傷の5〜10%を占め最多骨折の一つ。骨幹部骨折（中1/3）が約80%。遠位端骨折（外1/3）は肩鎖靱帯損傷を伴う場合に不安定型となる。",
+  side: true,
+  classifications:[
+    { id:"robinson", name:"Robinson分類（骨幹部・近位端）", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"骨幹部（Type 2）・内側端（Type 1）・外側端（Type 3）の3型に分け、さらにサブタイプで転位・粉砕度を評価する。骨幹部中1/3（Type 2B）が最も手術適応の議論になる群。Allmanより詳細な手術判断に使える。",
+      memo:"Type 2Bは皮質接触なしで転位・短縮が生じる不安定型。Type 1は内側端、Type 3は外側端の骨折。",
+      grades:[
+        { grade:"Type 1", name:"内側端骨折", desc:"内1/3。鎖骨下血管・腕神経叢に注意。稀", surg:"dep" },
+        { grade:"Type 2A1", name:"骨幹部・非転位（皮質接触あり）", desc:"皮質接触残存。非転位型", surg:"con" },
+        { grade:"Type 2A2", name:"骨幹部・楔状（皮質接触あり）", desc:"楔型骨片だが皮質接触残存", surg:"con" },
+        { grade:"Type 2B1", name:"骨幹部・単純転位（皮質接触なし）", desc:"完全転位・短縮あり", surg:"dep" },
+        { grade:"Type 2B2", name:"骨幹部・粉砕転位（皮質接触なし）", desc:"粉砕・短縮2cm超", surg:"op" },
+        { grade:"Type 3", name:"外側端骨折", desc:"外1/3（Neer分類と対応）。Craig分類参照", surg:"dep" },
+      ]
+    },
+    { id:"craig_takubo", name:"Craig・田久保分類（遠位端）", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"鎖骨遠位端骨折（Robinson Type 3）を烏口鎖骨靱帯（円錐靱帯・菱形靱帯）との関係で5型に分類。田久保らがType IVを追加した日本での標準分類。靱帯の断裂パターンが不安定性と手術適応を決める。",
+      memo:"Type IIは烏口鎖骨靱帯の断裂により近位骨片が上方転位する高度不安定型。Type IVは小児特有の骨端線損傷。",
+      grades:[
+        { grade:"Type I", name:"靱帯外側端骨折（安定型）", desc:"烏口鎖骨靱帯は骨片に付着。安定型", surg:"con" },
+        { grade:"Type II", name:"靱帯内側（近位骨片から）断裂（不安定）", desc:"円錐靱帯断裂。近位骨片が上方転位", surg:"op" },
+        { grade:"Type IIA", name:"Type II：菱形靱帯も断裂", desc:"両靱帯断裂。高度不安定", surg:"op" },
+        { grade:"Type IIB", name:"Type II：円錐靱帯のみ断裂", desc:"円錐靱帯単独断裂。不安定", surg:"dep" },
+        { grade:"Type III", name:"肩鎖関節内骨折", desc:"関節面骨折。変形性肩鎖関節症リスク", surg:"dep" },
+        { grade:"Type IV", name:"小児骨端線損傷", desc:"骨膜スリーブ内骨折。骨膜温存で骨癒合しやすい", surg:"con" },
+        { grade:"Type V", name:"粉砕骨折", desc:"靱帯付着部の粉砕。不安定", surg:"op" },
+      ]
+    },
+    { id:"neer_clav", name:"Neer分類（遠位端）", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"遠位端骨折（Allman Group II）をさらに細分化。烏口鎖骨靱帯（菱形靱帯・円錐靱帯）の断裂の有無が安定性を決定する。",
+      memo:"Type IIが最も不安定。Type IIBは円錐靱帯断裂を伴い、整復後も靱帯損傷による不安定性が残る。",
+      grades:[
+        { grade:"Type I", name:"靱帯温存（安定型）", desc:"烏口鎖骨靱帯が骨片を保持", surg:"con" },
+        { grade:"Type IIA", name:"靱帯近位断裂（不安定）", desc:"菱形靱帯断裂、円錐靱帯温存", surg:"dep" },
+        { grade:"Type IIB", name:"両靱帯断裂（高度不安定）", desc:"菱形・円錐両靱帯断裂", surg:"op" },
+        { grade:"Type III", name:"関節内骨折", desc:"肩鎖関節面を含む。変形性関節症リスク", surg:"dep" },
+      ]
+    },
+  ]
+},
+
+humerus_proximal: {
+  name:"上腕骨近位部骨折", iconClass:"icon-arm", ao:"AO 11",
+  region:"upper",
+  overview:"上腕骨近位部骨折は高齢者骨粗鬆症骨折の代表。Neer分類が治療指針の基本。骨折片の数（2〜4パート）と転位量（1cm超/45°超）が治療選択の鍵。",
+  side: true,
+  classifications:[
+    { id:"ao11", name:"AO/OTA 11分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"骨折形態をA群（単焦点関節外）・B群（2焦点関節外）・C群（関節内）の3群に分類。Cは骨頭壊死リスク高。",
+      memo:"AO 11Cは骨端線より近位の関節内骨折で回旋動脈損傷を伴い骨頭壊死リスクが高い。",
+      grades:[
+        { grade:"11A", name:"単焦点関節外骨折", desc:"外科頸・大結節 avulsion 等。骨頭・大結節は概ね無傷", surg:"con" },
+        { grade:"11B", name:"関節外2パート", desc:"大結節または小結節骨折を伴う", surg:"dep" },
+        { grade:"11C", name:"関節内・骨頭壊死リスク", desc:"骨端線より近位の骨折。骨頭壊死リスク大", surg:"op" },
+      ]
+    },
+    { id:"neer", name:"Neer分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"上腕骨近位を4パート（骨頭・大結節・小結節・骨幹部）に分け、転位量（1cm超 または 45°超）で分類。転位のある骨片数が増えるほど骨頭壊死リスクが増加する。",
+      memo:"転位骨片数が増えるほど骨頭壊死リスクが増加する。4パートはリスクが最も高く（13〜34%）、valgus impacted型は例外的に血行温存が期待できる。",
+      grades:[
+        { grade:"1パート", name:"骨折あるが転位なし", desc:"転位基準（1cm/45°）を超えない", surg:"con" },
+        { grade:"2パート", name:"1骨片が転位", desc:"外科頸・大結節・小結節のいずれか1つが転位", surg:"op" },
+        { grade:"3パート", name:"2骨片が転位", desc:"骨頭壊死リスク中等度。2骨片が転位", surg:"op" },
+        { grade:"4パート", name:"3骨片すべて転位", desc:"骨頭壊死リスク高（13〜34%）。全骨片が転位", surg:"op" },
+        { grade:"valgus impacted", name:"内翻嵌込型", desc:"骨頭が内側に嵌込。血行温存のことが多く比較的安定", surg:"dep" },
+      ]
+    },
+    { id:"hokudai", name:"北大分類（上腕骨近位骨折）", badgeLabel:"局", badgeClass:"badge-purple",
+      desc:"北海道大学グループが提唱した上腕骨近位骨折の実践的分類。Neer分類の「パート」概念を維持しつつ、3次元CT所見をもとに骨折型を整理。特に大結節骨折の転位方向（後上方 vs 後方）と骨頭インプレッション（Hill-Sachs・逆Hill-Sachs）を重視する。",
+      memo:"大結節の後上方転位は腱板付着部の損傷を伴う。骨頭impactionが大きいほど骨頭壊死リスクが高まる。術前3DCTで骨折形態を把握する。",
+      grades:[
+        { grade:"Type I", name:"外科頸骨折（大結節転位なし）", desc:"Neer 1〜2パート外科頸相当", surg:"dep" },
+        { grade:"Type II", name:"大結節骨折（後上方転位2mm以上）", desc:"腱板付着部の転位", surg:"op" },
+        { grade:"Type III", name:"外科頸＋大結節骨折", desc:"Neer 3パート相当。粉砕では骨頭壊死リスクあり", surg:"op" },
+        { grade:"Type IV", name:"4パート骨折・骨頭impaction", desc:"Neer 4パート/valgus impacted相当。骨頭壊死リスク高", surg:"op" },
+        { grade:"Type V", name:"骨頭骨折・骨頭壊死高リスク", desc:"関節内骨折主体。骨頭壊死リスク大", surg:"op" },
+      ]
+    },
+  ]
+},
+
+humerus_shaft: {
+  name:"上腕骨骨幹部骨折", iconClass:"icon-arm", ao:"AO 12",
+  region:"upper",
+  overview:"上腕骨骨幹部骨折は全骨折の1〜3%。橈骨神経麻痺（下垂手）の合併に注意。大部分は保存療法（機能的ブレース）が有効だが、神経血管損傷・多発外傷・開放骨折・病的骨折は手術適応。",
+  side: true,
+  classifications:[
+    { id:"ao12", name:"AO/OTA 12分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"骨折形態による3群分類。形態が手術難易度と合併症リスクを反映する。",
+      memo:"橈骨神経は上腕骨後外側（橈骨神経溝）を走行し、骨幹中〜遠位1/3骨折で麻痺リスクが高い。麻痺の80〜90%は自然回復する。",
+      grades:[
+        { grade:"12A", name:"単純骨折", desc:"螺旋・斜走・横断。単純骨折形態", surg:"con" },
+        { grade:"12B", name:"くさび型骨折（粉砕片あり）", desc:"蝶型骨片を伴う中間型骨折", surg:"dep" },
+        { grade:"12C", name:"複雑骨折（粉砕型）", desc:"粉砕またはセグメント骨折", surg:"op" },
+      ]
+    },
+  ]
+},
+
+humerus_distal: {
+  name:"上腕骨遠位端骨折", iconClass:"icon-arm", ao:"AO 13",
+  region:"upper",
+  overview:"上腕骨遠位端骨折は関節内骨折の代表。ORIF（二重プレート固定）が原則。高齢者・骨粗鬆症では全肘関節置換術（TEA）が選択肢となる。小児の顆上骨折はGartland分類を使用。",
+  side: true,
+  classifications:[
+    { id:"ao13", name:"AO/OTA 13分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"関節外（A）・部分関節内（B）・完全関節内（C）の3群。C群は複雑関節内骨折で手術難易度が高い。",
+      memo:"13Cは完全関節内粉砕で固定難易度が高い。高齢者・骨粗鬆症では人工関節置換の成績が良好との報告がある。",
+      grades:[
+        { grade:"13A", name:"関節外骨折", desc:"骨端線より近位。骨幹端骨折", surg:"dep" },
+        { grade:"13B", name:"部分関節内骨折", desc:"外側または内側顆の関節内骨折", surg:"op" },
+        { grade:"13C", name:"完全関節内骨折", desc:"両顆が完全に分離した関節内粉砕", surg:"op" },
+      ]
+    },
+    { id:"gartland", name:"Gartland分類（小児顆上骨折）", badgeLabel:"補", badgeClass:"badge-green",
+      desc:"小児上腕骨顆上骨折の標準分類。骨膜ヒンジの断裂と転位量による3型分類。前方骨間神経・橈骨神経麻痺、コンパートメント症候群に注意。",
+      memo:"Type IIは後方骨膜ヒンジが温存されており比較的安定。Type IIIは骨膜ヒンジ断裂による完全転位で神経血管損傷リスクが高い。",
+      grades:[
+        { grade:"Type I", name:"非転位型", desc:"骨折線あるが転位なし", surg:"con" },
+        { grade:"Type II", name:"後方骨膜ヒンジ温存", desc:"後方骨膜ヒンジ温存。後方皮質は連続", surg:"dep" },
+        { grade:"Type III", name:"完全転位（ヒンジ断裂）", desc:"血管・神経損傷リスク", surg:"op" },
+      ]
+    },
+    { id:"dubberley", name:"Dubberley分類（小頭・滑車骨折/Coronal shear）", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"上腕骨遠位の冠状面骨折（coronal shear fracture）を骨折の範囲（小頭のみ / 小頭＋滑車 / 粉砕）と後方コミニュートの有無で分類。正面X線では見逃しやすく側面X線・CTが必須。肘関節の屈曲伸展に直接関与する骨折のため整復精度が重要。",
+      memo:"正面X線では見逃しやすく側面X線・CTが必須。後方皮質の粉砕（B型）は整復後の再転位リスクが高い。",
+      grades:[
+        { grade:"Type IA", name:"小頭単独骨折・後方粉砕なし", desc:"小頭単独。後方皮質支持あり", surg:"op" },
+        { grade:"Type IB", name:"小頭単独骨折・後方粉砕あり", desc:"小頭単独。後方皮質粉砕あり。再転位リスク", surg:"op" },
+        { grade:"Type IIA", name:"小頭＋滑車骨折・後方粉砕なし", desc:"小頭と滑車を含む。広範な骨折", surg:"op" },
+        { grade:"Type IIB", name:"小頭＋滑車骨折・後方粉砕あり", desc:"後方支持不足", surg:"op" },
+        { grade:"Type III", name:"小頭＋滑車粉砕骨折", desc:"関節面の高度粉砕。整復困難", surg:"op" },
+      ]
+    },
+  ]
+},
+
+radius_proximal: {
+  name:"橈骨頭・頸部骨折", iconClass:"icon-forearm", ao:"AO 21",
+  overview:"橈骨頭骨折は肘関節骨折の最多。肘外側打撲・転倒後の肘外側痛で疑う。Essex-Lopresti損傷（橈骨頭骨折＋骨間膜断裂＋DRUJ不安定）の除外が重要。Morrey改訂でType IVが追加され、肘関節脱臼合併が独立した型となった。",
+  side: true,
+  classifications:[
+    { id:"mason", name:"Mason-Morrey分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"Masonの原法3型にMorreyがType IVを追加した改訂版。橈骨頭骨折を転位量・粉砕度・合併損傷で4型に分類。肘関節脱臼合併（Type IV）は治療難度が高く独立した分類が必要。",
+      memo:"Essex-Lopresti損傷（橈骨頭骨折＋骨間膜断裂＋DRUJ不安定）の合併除外が重要。Mason IVは肘関節脱臼を伴い不安定性が高い。",
+      grades:[
+        { grade:"Mason I", name:"非転位骨折（2mm未満）", desc:"関節穿刺除痛。保存療法", surg:"con" },
+        { grade:"Mason II", name:"辺縁骨折（2mm以上転位）", desc:"機能的骨片1/3超で関節面の不整", surg:"op" },
+        { grade:"Mason III", name:"粉砕骨折（整復不能）", desc:"橈骨頭置換。Essex-Lopresti除外が必須", surg:"op" },
+        { grade:"Mason IV", name:"橈骨頭骨折＋肘関節脱臼", desc:"Morrey追加型。橈骨頭骨折に肘関節脱臼を合併", surg:"op" },
+      ]
+    },
+  ]
+},
+
+forearm_shaft: {
+  name:"前腕骨骨幹部骨折", iconClass:"icon-forearm", ao:"AO 22",
+  region:"upper",
+  overview:"前腕は「機能的関節」として回内外運動を担う。橈骨・尺骨の一方が骨折すれば近位・遠位関節の脱臼を合併する（Monteggia・Galeazzi）。成人の孤立骨折ほぼすべてで手術適応（プレート固定）。",
+  side: true,
+  classifications:[
+    { id:"ao22", name:"AO/OTA 22分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"骨折形態（単純・くさび・粉砕）を橈骨・尺骨独立に評価。成人は原則ORIF（プレート）、小児は保存療法が多い。",
+      memo:"前腕は回内外運動を担う機能的関節であり、解剖学的整復が回旋機能回復に必須。",
+      grades:[
+        { grade:"22A", name:"単純骨折（一骨または両骨）", desc:"プレート固定。早期可動域訓練で機能回復良好", surg:"op" },
+        { grade:"22B", name:"くさび型骨折", desc:"蝶型骨片を含む。ラグスクリュー併用プレート", surg:"op" },
+        { grade:"22C", name:"複雑・粉砕骨折", desc:"骨移植を要する場合あり。固定困難", surg:"op" },
+      ]
+    },
+    { id:"monteggia", name:"Monteggia骨折（Bado分類）", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"尺骨骨幹部骨折＋橈骨頭脱臼の組み合わせ。橈骨頭の脱臼方向でType I〜IVに分類（Bado分類）。見落としが多い！必ず橈骨頭を確認。",
+      memo:"尺骨骨折を解剖学的に整復すると橈骨頭が自然整復されることが多い。整復後も不安定な場合は橈骨頭の追加処置が必要。",
+      grades:[
+        { grade:"Bado I", name:"橈骨頭前方脱臼（最多）", desc:"尺骨近位部前方凸骨折", surg:"op" },
+        { grade:"Bado II", name:"橈骨頭後方脱臼", desc:"尺骨後方凸骨折", surg:"op" },
+        { grade:"Bado III", name:"橈骨頭外側脱臼", desc:"小児に多い。尺骨幹部骨折", surg:"op" },
+        { grade:"Bado IV", name:"橈骨頭前方脱臼＋両骨折", desc:"橈骨頭＋両骨折の組み合わせ", surg:"op" },
+      ]
+    },
+    { id:"galeazzi", name:"Galeazzi骨折", badgeLabel:"補", badgeClass:"badge-green",
+      desc:"橈骨骨幹部骨折＋遠位橈尺関節（DRUJ）脱臼の組み合わせ。必ず手関節X線でDRUJ確認。",
+      memo:"見落とすと慢性DRUJ不安定性・前腕回旋障害が残存する。橈骨骨折処置後のDRUJ安定性の確認が必須。",
+      grades:[
+        { grade:"典型型", name:"橈骨骨幹＋DRUJ脱臼", desc:"橈骨プレート固定->DRUJ安定性確認->不安定ならピン", surg:"op" },
+      ]
+    },
+  ]
+},
+
+radius_distal: {
+  name:"橈骨遠位端骨折", iconClass:"icon-forearm", ao:"AO 23",
+  region:"upper",
+  overview:"橈骨遠位端骨折は全骨折の最多（約20%）。高齢者の骨粗鬆症骨折と若年者の高エネルギー外傷で骨折形態が異なる。掌側傾斜・橈骨高・尺骨変位の整復が機能予後に直結する。",
+  side: true,
+  classifications:[
+    { id:"ao23", name:"AO/OTA 23分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"関節外（A）・部分関節内（B）・完全関節内（C）の3群。Cは掌側ロッキングプレートの適応が多い。",
+      memo:"橈骨高の短縮・掌側傾斜の喪失・関節面転位2mm超・尺骨茎状突起基部骨折が不安定性のサイン。",
+      grades:[
+        { grade:"23A", name:"関節外骨折", desc:"Colles型・Smith型・Barton型など。高齢者は保存療法検討", surg:"dep" },
+        { grade:"23B", name:"部分関節内骨折", desc:"Chauffeur骨折など。掌・背側Barton含む", surg:"dep" },
+        { grade:"23C", name:"完全関節内骨折", desc:"両終板・後壁を含む完全関節内骨折", surg:"op" },
+      ]
+    },
+    { id:"frykman", name:"Frykman分類", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"橈骨遠位端骨折を関節内骨折の有無と尺骨茎状突起骨折の有無で8型に分類（奇数=尺骨茎状突起なし、偶数=あり）。数字が大きいほど重症。",
+      memo:"Frykman VII/VIIIは関節内粉砕＋尺骨茎状突起骨折を伴う最重症群。尺骨茎状突起基部骨折はDRUJ損傷のサイン。",
+      grades:[
+        { grade:"I", name:"関節外・尺骨茎状突起なし", desc:"最軽症群。多くは保存療法", surg:"con" },
+        { grade:"II", name:"関節外・尺骨茎状突起あり", desc:"DRUJ損傷のサインに注意", surg:"dep" },
+        { grade:"III", name:"橈骨遠位関節内・尺骨茎状突起なし", desc:"橈骨関節面のみ侵犯", surg:"dep" },
+        { grade:"IV", name:"橈骨遠位関節内・尺骨茎状突起あり", desc:"関節内骨折＋尺骨茎状突起骨折", surg:"dep" },
+        { grade:"V", name:"橈尺関節内・尺骨茎状突起なし", desc:"DRUJ関節内骨折を含む", surg:"op" },
+        { grade:"VI", name:"橈尺関節内・尺骨茎状突起あり", desc:"DRUJ関節内＋尺骨茎状突起骨折", surg:"op" },
+        { grade:"VII", name:"両関節内粉砕・尺骨茎状突起なし", desc:"関節内粉砕。最重症群の一つ", surg:"op" },
+        { grade:"VIII", name:"両関節内粉砕・尺骨茎状突起あり", desc:"最重症。関節内粉砕＋DRUJ損傷", surg:"op" },
+      ]
+    },
+    { id:"colles_eponym", name:"病名別（eponym）分類", badgeLabel:"補", badgeClass:"badge-green",
+      desc:"橈骨遠位端骨折のeponym（病名）は骨折形態と転位方向で区別する。カルテ記載・申し送りでよく使われる。",
+      memo:"Colles：背側転位（fork変形）。Smith：掌側転位（逆Colles）。Barton：関節辺縁骨折＋手根骨転位。Chauffeur：橈骨茎状突起骨折（舟状月状靱帯損傷合併に注意）。",
+      grades:[
+        { grade:"Colles骨折", name:"背側転位型（最多）", desc:"橈骨遠位端骨折＋背側・橈側転位。「fork変形」", surg:"dep" },
+        { grade:"Smith骨折", name:"掌側転位型（逆Colles）", desc:"掌側転位。転倒時手背接地。プレート固定適応多い", surg:"dep" },
+        { grade:"Barton骨折", name:"関節縁骨折＋手根骨転位", desc:"掌側または背側辺縁骨折。手根骨が骨片と一塊に転位", surg:"op" },
+        { grade:"Chauffeur骨折", name:"橈骨茎状突起骨折", desc:"舟状月状靱帯損傷を合併する場合あり。ラグスクリュー固定", surg:"op" },
+      ]
+    },
+  ]
+},
+
+scaphoid: {
+  name:"舟状骨骨折", iconClass:"icon-hand", ao:"-",
+  region:"upper",
+  overview:"舟状骨骨折は手根骨骨折の最多（70〜80%）。解剖学的特性（逆行性血流）から、近位極骨折・転位型骨折は骨頭壊死・偽関節のリスクが高い。手関節X線で見逃しが多く、CTが必須。",
+  side: true,
+  classifications:[
+    { id:"herbert", name:"Herbert分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"骨折の安定性と偽関節リスクを基に分類（A:安定、B:不安定、C:偽関節への移行、D:確立した偽関節）。Type Bが急性期手術適応の主体。Type C・Dは遅延受診・偽関節例に用いる。",
+      memo:"近位極骨折（B3）は逆行性血流のため壊死リスクが最大。Type C（遅延癒合）・D（偽関節）は骨移植を要することが多い。舟状月状靱帯損傷の合併除外も重要。",
+      grades:[
+        { grade:"Type A1", name:"安定骨折・結節部骨折", desc:"遠位結節部の安定骨折。血流良好", surg:"con" },
+        { grade:"Type A2", name:"安定骨折・不全骨折", desc:"骨折線不完全。転位なし", surg:"con" },
+        { grade:"Type B1", name:"不安定骨折・遠位斜走骨折", desc:"遠位1/3の斜走骨折。不安定型", surg:"op" },
+        { grade:"Type B2", name:"不安定骨折・完全骨折（中1/3）", desc:"腰部の完全骨折。最多の手術適応", surg:"op" },
+        { grade:"Type B3", name:"不安定骨折・近位極骨折", desc:"近位1/3の骨折。血流不良で壊死リスク最大", surg:"op" },
+        { grade:"Type B4", name:"不安定骨折・経舟状月状骨骨折脱臼", desc:"手根骨脱臼を伴う大弧状損傷の一部", surg:"op" },
+        { grade:"Type C", name:"遅延癒合（偽関節への移行期）", desc:"骨折後数週〜数ヶ月で骨癒合が進まない遅延癒合状態", surg:"op" },
+        { grade:"Type D1", name:"確立した偽関節・線維性", desc:"骨折端が線維組織で架橋。骨移植を要する", surg:"op" },
+        { grade:"Type D2", name:"確立した偽関節・仮骨形成（humpback変形）", desc:"仮骨形成を伴う偽関節。舟状骨の屈曲変形（humpback）を生じやすい", surg:"op" },
+      ]
+    },
+    { id:"mayo_scaphoid", name:"Mayo分類（部位別）", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"骨折部位による3分類。部位と血流支配から壊死リスクを推定する。",
+      memo:"舟状骨の血流は橈骨動脈背側枝から逆行性。近位極ほど血流が乏しく壊死・偽関節リスクが高い。",
+      grades:[
+        { grade:"遠位1/3", name:"遠位極・結節部骨折", desc:"血流良好。偽関節リスク低", surg:"con" },
+        { grade:"中1/3", name:"腰部骨折（最多70%）", desc:"標準的な部位。不安定型は手術", surg:"dep" },
+        { grade:"近位1/3", name:"近位極骨折", desc:"血流不良。壊死・偽関節リスク最大", surg:"op" },
+      ]
+    },
+  ]
+},
+
+scapula: {
+  name:"肩甲骨骨折", iconClass:"icon-arm", ao:"-",
+  region:"upper",
+  overview:"肩甲骨骨折はまれ（全骨折の0.5〜1%）で、高エネルギー外傷に合併することが多い。肺挫傷・肋骨骨折・鎖骨骨折・腕神経叢損傷の合併を必ず確認する。Ideberg分類が関節窩骨折の標準。",
+  side: true,
+  classifications:[
+    { id:"ideberg", name:"Ideberg分類（関節窩骨折）", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"肩甲骨関節窩（glenoid）骨折を骨折形態と安定性で5型（Ada改訂で6型）に分類。関節内骨折の範囲と骨片の転位が手術適応を決定する。小骨片・非転位型は保存可。",
+      memo:"Type V/VIは高エネルギー外傷で腕神経叢損傷の合併に注意。転位量が安定性を決める。",
+      grades:[
+        { grade:"Type I", name:"関節窩辺縁骨折（前方/後方）", desc:"脱臼合併が多い。転位量が安定性を決める", surg:"dep" },
+        { grade:"Type II", name:"横断骨折（関節窩下半部）", desc:"関節窩を横断。骨片転位", surg:"op" },
+        { grade:"Type III", name:"斜走骨折（上方〜頸部）", desc:"上方骨片に上腕骨頭が付随。高度不安定", surg:"op" },
+        { grade:"Type IV", name:"水平骨折（肩甲骨体部横断）", desc:"肩甲骨体部を横断。大きな骨片", surg:"op" },
+        { grade:"Type V", name:"Type II+IV合併（T字型）", desc:"複合型骨折。高エネルギー外傷", surg:"op" },
+        { grade:"Type VI", name:"高度粉砕骨折（Ada追加）", desc:"関節窩全体の粉砕。神経損傷合併多い", surg:"op" },
+      ]
+    },
+  ]
+},
+
+floating_shoulder: {
+  name:"Floating shoulder", iconClass:"icon-arm", ao:"-",
+  region:"upper",
+  overview:"鎖骨骨折＋肩甲骨頸部骨折（または上肩甲帯の2か所骨折）による上肩甲帯の浮遊状態。肩甲骨と体幹の骨性連続が失われ、上肢が「浮遊」する。不安定性の評価が手術適応の核心。",
+  side: true,
+  classifications:[
+    { id:"nakagawa", name:"仲川分類（Floating shoulder）", badgeLabel:"局", badgeClass:"badge-purple",
+      desc:"上肩甲帯の2か所骨折による浮遊肩を安定性で分類する日本発の分類。靱帯損傷（肩鎖靱帯・烏口鎖骨靱帯）の合否と骨折転位量が安定性を決定する。当院整形外科で使用。",
+      memo:"上肢の下垂転位・肩甲骨の内外旋転位が高度不安定のサイン。仲川C型は上肩甲帯の骨性・靱帯的連続がすべて断絶した完全浮遊状態。",
+      grades:[
+        { grade:"仲川 A", name:"安定型（靱帯連続性温存）", desc:"上肩甲帯靱帯が温存。片側の骨性連続は保たれる", surg:"dep" },
+        { grade:"仲川 B", name:"不安定型（靱帯部分損傷）", desc:"靱帯部分断裂->鎖骨固定+肩甲骨固定検討", surg:"op" },
+        { grade:"仲川 C", name:"高度不安定型（靱帯完全断裂）", desc:"上肩甲帯完全浮遊。前後の骨性・靱帯連続がすべて断絶", surg:"op" },
+      ]
+    },
+  ]
+},
+
+pelvis: {
+  name:"骨盤輪骨折", iconClass:"icon-pelvis", ao:"AO 61",
+  region:"trunk",
+  overview:"骨盤輪骨折は高エネルギー外傷（交通事故・転落）に多く、出血死の原因となりうる緊急病態。後部骨盤輪（仙腸関節・仙骨）の安定性評価が治療の核心。まず止血・大量輸液・骨盤固定（シーツ固定・外固定器）が優先。高齢骨粗鬆症患者の脆弱性骨盤輪骨折（FFP）はRommens分類で評価する。",
+  side: false,
+  custom: "pelvis",
+  classifications:[
+    { id:"ao61", name:"AO/OTA 61分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"骨盤輪骨折をA（安定）・B（回転不安定）・C（垂直不安定）の3群に分け、さらに損傷パターンでサブタイプを規定する。Tile分類とほぼ対応する国際標準体系。",
+      memo:"後方輪損傷の程度が垂直不安定性を決定する。全型で出血制御が最優先事項。",
+      grades:[
+        { grade:"61A1", name:"骨盤輪外の骨折（腸骨翼・仙骨横突起）", desc:"骨盤輪の安定性は損なわれない。保存療法", surg:"con" },
+        { grade:"61A2", name:"骨盤輪の非転位安定骨折", desc:"片側の恥骨枝骨折など。転位なし", surg:"con" },
+        { grade:"61A3", name:"仙骨横断骨折", desc:"S3以下の横断骨折。安定型", surg:"con" },
+        { grade:"61B1", name:"Open-book損傷（外旋不安定）", desc:"前方骨盤輪開大。後方靱帯は部分温存。外旋回転不安定性", surg:"dep" },
+        { grade:"61B2", name:"側方圧迫損傷（内旋不安定）", desc:"片側内旋骨折。前方は圧迫閉鎖。後方靱帯部分損傷", surg:"dep" },
+        { grade:"61B3", name:"両側B型（bilateral B）", desc:"双側の回転不安定。前後方輪の双側損傷。輸血・止血優先", surg:"op" },
+        { grade:"61C1", name:"片側垂直不安定（仙腸関節または仙骨）", desc:"片側の後方輪完全断裂。垂直剪断力。出血大", surg:"op" },
+        { grade:"61C2", name:"両側垂直不安定（片側C＋対側B）", desc:"非対称型双側損傷", surg:"op" },
+        { grade:"61C3", name:"両側完全垂直不安定", desc:"双側の後方輪完全断裂。最重症。出血死リスク最大", surg:"op" },
+      ]
+    },
+    { id:"tile", name:"Tile分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"骨盤輪の安定性を回転・垂直の2軸で評価する臨床分類。AO 61と密接に対応する。A=安定、B=回転不安定（垂直安定）、C=完全不安定。",
+      memo:"後方輪の損傷が垂直不安定性を決定する。出血制御（TAE・骨盤パッキング）が先決事項。",
+      grades:[
+        { grade:"Type A1", name:"骨盤輪外骨折（腸骨翼・坐骨）", desc:"骨盤輪の安定性は保たれる。保存", surg:"con" },
+        { grade:"Type A2", name:"骨盤輪安定・最小限転位", desc:"単純恥骨枝骨折など。非転位型", surg:"con" },
+        { grade:"Type A3", name:"仙骨横断骨折（S3以下）", desc:"腰仙部神経叢に影響しない横断骨折", surg:"con" },
+        { grade:"Type B1", name:"Open-book損傷", desc:"恥骨結合離開＋前仙腸靱帯断裂。外旋不安定性。後方靱帯は温存", surg:"dep" },
+        { grade:"Type B2", name:"側方圧迫（LC）損傷", desc:"仙骨前面＋恥骨枝骨折。内旋不安定。後方靱帯は部分損傷", surg:"dep" },
+        { grade:"Type B3", name:"両側B型（風吹き骨盤）", desc:"双側の回転不安定。LC III相当が多い", surg:"op" },
+        { grade:"Type C1", name:"片側完全不安定（仙腸関節脱臼など）", desc:"後方輪片側完全断裂。垂直転位あり", surg:"op" },
+        { grade:"Type C2", name:"両側不安定（片C＋対側B）", desc:"非対称型。対側はB型不安定", surg:"op" },
+        { grade:"Type C3", name:"両側完全不安定", desc:"双側の垂直不安定。最重症群", surg:"op" },
+      ]
+    },
+    { id:"young_burgess", name:"Young-Burgess分類", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"損傷機転（外力方向）による分類。出血量・死亡率との相関が高く、外傷初期対応に有用。APCはopen-book、LCは側方圧迫、VSは垂直剪断、CMは混合型。",
+      memo:"APC III・VS・CMは大量出血リスク（平均輸血量4〜8単位超）。LC IIIは風吹き骨盤で内臓損傷合併に注意。",
+      grades:[
+        { grade:"APC I", name:"前後方圧迫 軽度（<2.5cm離開）", desc:"恥骨結合・恥骨枝骨折のみ。後方靱帯温存。安定型に近い", surg:"con" },
+        { grade:"APC II", name:"前後方圧迫 中等度（2.5cm以上離開）", desc:"前仙腸靱帯・床靱帯断裂。後仙腸靱帯温存。回転不安定", surg:"dep" },
+        { grade:"APC III", name:"前後方圧迫 重度（後方輪断裂）", desc:"前後仙腸靱帯・床靱帯・仙結節靱帯すべて断裂。垂直不安定。最大出血リスク", surg:"op" },
+        { grade:"LC I", name:"側方圧迫 軽度（仙骨圧迫骨折）", desc:"仙骨前面骨折＋同側恥骨枝骨折。安定型", surg:"con" },
+        { grade:"LC II", name:"側方圧迫 中等度（腸骨翼骨折）", desc:"腸骨翼骨折（crescent骨折）。後仙腸靱帯断裂", surg:"dep" },
+        { grade:"LC III", name:"側方圧迫 重度（風吹き骨盤）", desc:"同側LC＋対側open-book。内臓損傷合併。対側の回転不安定", surg:"op" },
+        { grade:"VS", name:"垂直剪断（Malgaigne骨折）", desc:"前後方輪の垂直断裂＋垂直転位。坐骨神経損傷合併多い。出血大", surg:"op" },
+        { grade:"CM", name:"複合型（Combined Mechanism）", desc:"上記の組み合わせ。LC＋VSが多い。多発損傷に注意", surg:"op" },
+      ]
+    },
+    { id:"rommens", name:"Rommens分類（脆弱性骨盤輪骨折・FFP）", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"高齢骨粗鬆症患者の脆弱性骨盤輪骨折（Fragility Fracture of the Pelvis: FFP）を後方輪損傷の程度で4型に分類。低エネルギー（転倒・軽微な外力）で生じる骨折で、Young-Burgess/Tile分類では捉えにくい。MRIで骨折の完全/不完全を評価する。",
+      memo:"後方輪の完全損傷（FFP III・IV）は不安定性が高い。臥床長期化による合併症予防のため早期離床が重要。",
+      grades:[
+        { grade:"FFP I", name:"前方骨盤輪骨折のみ（後方損傷なし）", desc:"恥骨枝骨折。後方輪は無傷->安定型。保存療法", surg:"con" },
+        { grade:"FFP IIa", name:"後方仙骨・骨折線のみ（X線で不明瞭）", desc:"MRIでのみ確認可能な骨傷。安静＋早期荷重", surg:"con" },
+        { grade:"FFP IIb", name:"後方仙骨・不完全骨折（骨折線明確）", desc:"仙骨骨折線あり。転位なし", surg:"dep" },
+        { grade:"FFP IIc", name:"後方仙腸関節・不完全損傷", desc:"仙腸関節の不完全損傷。経皮的ILスクリュー検討", surg:"dep" },
+        { grade:"FFP IIIa", name:"後方仙骨・片側完全骨折", desc:"片側後方輪完全断裂", surg:"op" },
+        { grade:"FFP IIIb", name:"後方仙腸関節・片側完全脱臼/骨折脱臼", desc:"片側仙腸関節完全損傷", surg:"op" },
+        { grade:"FFP IVa", name:"後方仙骨・両側完全骨折（H字/U字骨折）", desc:"仙骨H字骨折。馬尾症候群リスク", surg:"op" },
+        { grade:"FFP IVb", name:"後方仙腸関節・両側完全損傷", desc:"双側完全不安定", surg:"op" },
+      ]
+    },
+  ]
+},
+
+acetabulum: {
+  name:"寛骨臼骨折", iconClass:"icon-pelvis", ao:"AO 62",
+  region:"trunk",
+  overview:"寛骨臼骨折は股関節の荷重面の骨折。Judet-Letournel分類が国際標準。CTによる骨折形態の正確な把握と、後壁骨折の安定性評価が手術適応を決める。",
+  side: true,
+  classifications:[
+    { id:"judet", name:"Judet-Letournel分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"寛骨臼を前柱・後柱の二本柱構造と捉え、単純型5種＋複合型5種の計10型に分類する。世界標準の分類。前後の標準X線＋斜位（obturator/iliac斜位）で判断。",
+      memo:"後壁骨折は股関節後方脱臼との合併が多く、骨壁40%超の損傷で股関節不安定性が生じる。両柱骨折は最重症の複合型。",
+      grades:[
+        { grade:"後壁骨折", name:"最多（約20%）", desc:"股関節後方不安定性。40%超骨片", surg:"dep" },
+        { grade:"後柱骨折", name:"後柱全体の骨折", desc:"坐骨神経損傷合併リスク", surg:"op" },
+        { grade:"前壁骨折", name:"前壁単独（まれ）", desc:"高齢者で比較的多い", surg:"dep" },
+        { grade:"前柱骨折", name:"前柱全体", desc:"前方アプローチ", surg:"op" },
+        { grade:"横断骨折", name:"前後柱の横断骨折", desc:"両柱分離。前後アプローチ要することも", surg:"op" },
+        { grade:"T字骨折", name:"横断＋後柱垂直骨折", desc:"複合型。技術的難度高", surg:"op" },
+        { grade:"後柱+前壁", name:"後柱＋前壁複合", desc:"複合型。前後アプローチ", surg:"op" },
+        { grade:"前柱+後壁", name:"前柱＋後壁複合", desc:"複合型。後方アプローチ中心", surg:"op" },
+        { grade:"横行+後壁", name:"横行＋後壁複合", desc:"複合型。後方固定が主体", surg:"op" },
+        { grade:"前柱+後半横行", name:"前柱＋後半横行複合", desc:"複合型。前方アプローチ", surg:"op" },
+        { grade:"両柱骨折", name:"前後両柱完全分離", desc:"重症複合型。固定範囲・アプローチ計画が重要", surg:"op" },
+      ]
+    },
+  ]
+},
+
+spine: {
+  name:"脊椎骨折", iconClass:"icon-spine", ao:"AO Spine",
+  region:"trunk",
+  overview:"脊椎骨折は神経障害の有無と骨折の不安定性が治療を左右する。胸腰椎移行部（T11〜L2）が最多部位。C1・C2骨折は専用分類を使用する。複数椎体損傷では各椎体ごとに形態を記載することが重要。",
+  side: false,
+  custom: "spine",
+  levels: {
+    cervical: ["C1(環椎)","C2(軸椎)","C3","C4","C5","C6","C7"],
+    thoracic: ["Th1","Th2","Th3","Th4","Th5","Th6","Th7","Th8","Th9","Th10","Th11","Th12"],
+    lumbar:   ["L1","L2","L3","L4","L5"],
+    sacral:   ["S1","S2","S3-5"]
+  },
+  // C1専用分類（アプリ独自コード / Jefferson・Levineを参考）
+  c1_classifications: [
+    { code:"C1-I",   name:"Jefferson骨折 Type I（後弓骨折）",
+      desc:"後弓単独の骨折。横靱帯は温存。安定型。保存療法（ハローベスト）が多い。", surg:"con" },
+    { code:"C1-II",  name:"Jefferson骨折 Type II（前弓骨折）",
+      desc:"前弓単独の骨折。稀。安定型。", surg:"con" },
+    { code:"C1-III", name:"Jefferson骨折 Type III（爆裂骨折）",
+      desc:"前後弓の両側骨折（4点骨折）。Spence rule：側塊の総外方転位>6.9mmなら横靱帯断裂->不安定型->手術", surg:"dep" },
+    { code:"C1-IV",  name:"側塊骨折",
+      desc:"C1側塊単独骨折。関節包損傷の程度が不安定性を決める。", surg:"dep" },
+  ],
+  // C2専用分類（Hangman + 歯突起）
+  c2_classifications: [
+    { code:"Odont-I",   name:"歯突起骨折 Anderson-D'Alonzo Type I（歯突起尖端）",
+      desc:"歯突起先端の裂離骨折。翼状靱帯付着部。稀で安定型。保存（コラーまたはハローベスト）。", surg:"con" },
+    { code:"Odont-II",  name:"歯突起骨折 Anderson-D'Alonzo Type II（基部骨折）",
+      desc:"歯突起基部（頸部）の横断骨折。最多（60〜70%）。偽関節リスクが高い（30%超）。転位>5mm・高齢者・後方転位は手術適応（後方固定またはスクリュー固定）。", surg:"dep" },
+    { code:"Odont-IIA", name:"歯突起骨折 Anderson-D'Alonzo Type IIA（基部粉砕）",
+      desc:"Type IIの粉砕型。骨片の安定性が低く偽関節リスク最大。手術が推奨される。", surg:"op" },
+    { code:"Odont-III", name:"歯突起骨折 Anderson-D'Alonzo Type III（椎体骨折）",
+      desc:"骨折線がC2椎体に及ぶ海綿骨骨折。血流が良く癒合しやすい。ハローベスト固定が標準。", surg:"con" },
+    { code:"Hang-I",    name:"Hangman骨折 Levine-Edwards Type I（非転位）",
+      desc:"両側C2椎弓根骨折。転位<3mm・角度<11°。ディスクは無傷。安定型。コラー固定またはハローベスト。", surg:"con" },
+    { code:"Hang-IA",   name:"Hangman骨折 Levine-Edwards Type IA（非定型）",
+      desc:"一方が椎弓根骨折、他方が関節突起骨折などの非対称型。外力方向が複合的。", surg:"dep" },
+    { code:"Hang-II",   name:"Hangman骨折 Levine-Edwards Type II（転位＋角度あり）",
+      desc:"転位≥3mmまたは角度≥11°。C2/C3ディスク損傷あり。ハローベスト固定が多いが不安定例は手術。", surg:"dep" },
+    { code:"Hang-IIA",  name:"Hangman骨折 Levine-Edwards Type IIA（高度後弯）",
+      desc:"転位は少ないが角度が著明（屈曲牽引機転）。牽引禁忌。伸展固定が基本。", surg:"dep" },
+    { code:"Hang-III",  name:"Hangman骨折 Levine-Edwards Type III（完全脱臼）",
+      desc:"関節面脱臼を伴う完全不安定型。脊髄損傷リスク大。緊急手術適応。", surg:"op" },
+  ],
+  // 通常椎体（C3〜S）用のAO Spine形態分類
+  aospine_morphology: {
+    A: {
+      label:"A型（圧迫損傷）",
+      desc:"前方の支持を担う椎体の圧迫損傷。後方張力帯は温存。",
+      subtypes:[
+        { code:"A0", name:"非構造的損傷", desc:"棘突起・横突起骨折など椎体の主要支持構造を侵さない。椎体の高さ・アライメントは正常。", surg:"con" },
+        { code:"A1", name:"楔状圧迫骨折", desc:"片側終板のみの圧迫骨折。椎体後壁は完全温存。骨粗鬆症性椎体骨折の典型。前柱のみ損傷でDenisの圧迫骨折に相当。", surg:"con" },
+        { code:"A2", name:"冠状面分離骨折（pincer/split型）", desc:"両終板が破損し椎体が冠状断で分離。前後径の短縮は伴わない。後壁は保たれる。", surg:"dep" },
+        { code:"A3", name:"不完全破裂骨折", desc:"片側終板＋椎体後壁の損傷。脊柱管内に骨片が突出する。Denisの破裂骨折（前柱＋中柱）の一部に相当。神経症状の有無で手術判断。", surg:"dep" },
+        { code:"A4", name:"完全破裂骨折", desc:"両終板＋椎体後壁損傷。椎体が完全に破壊されるA型最重症。骨片の脊柱管占拠が最大。A4単独でも神経障害があれば手術適応。", surg:"op" },
+      ]
+    },
+    B: {
+      label:"B型（張力帯損傷）",
+      desc:"前方または後方の張力帯（靱帯・骨）の損傷。不安定性あり。",
+      subtypes:[
+        { code:"B1", name:"単椎体経骨性張力帯損傷（骨性Chance）", desc:"椎体・椎弓を一本の骨折線が貫通する横走骨折。シートベルト損傷に典型的。骨折端は癒合しやすいが靱帯要素の断裂を伴うと不安定。", surg:"op" },
+        { code:"B2", name:"後方張力帯損傷（靱帯性）", desc:"棘上靱帯・棘間靱帯・黄色靱帯の断裂。多くはA型骨折と合併してみられる。MRIでPLC（後方靱帯複合体）の断裂を確認する。TLICS ≥5 に相当。", surg:"op" },
+        { code:"B3", name:"前方張力帯損傷（過伸展機転）", desc:"前縦靱帯・椎間板の断裂。過伸展外力による。強直性脊椎炎（AS）・DISH合併例に多く、わずかな外力で発生する。過伸展->椎間板が「開く」。", surg:"op" },
+      ]
+    },
+    C: {
+      label:"C型（転位・脱臼）",
+      desc:"全方向の支持構造を破綻した完全転位型。最も不安定。",
+      subtypes:[
+        { code:"C", name:"転位・脱臼型", desc:"並進（translational）・回旋・剪断のいずれかで椎体間が完全転位。前後方・側方のいずれかへの転位。脊髄損傷の合併率が最も高い。緊急整復・固定の手術適応。", surg:"op" },
+      ]
+    }
+  },
+  // 神経症状（N分類）— 詳細説明付き
+  neuro: [
+    { code:"N0", name:"神経症状なし", desc:"神経学的に正常。疼痛や圧痛はあるが神経脱落症状なし。" },
+    { code:"N1", name:"一過性神経症状", desc:"受診時には消失しているが、受傷直後に一過性の神経症状（脱力・しびれ・意識消失）があった。spinal shockからの回復例を含む。" },
+    { code:"N2", name:"持続性根症状", desc:"神経根（radicular）レベルの症状が持続。デルマトーム分布の疼痛・しびれ・筋力低下。脊髄症状ではなく神経根症状のみ。" },
+    { code:"N3", name:"不完全脊髄損傷／馬尾症候群", desc:"ASIAスケールB・C・Dに相当。損傷レベル以下に一部の運動・感覚が残存。馬尾症候群（L2以下：膀胱直腸障害・鞍状感覚障害）を含む。" },
+    { code:"N4", name:"完全脊髄損傷", desc:"ASIAスケールA。損傷レベル以下の運動・感覚が完全消失。仙髄部（S4〜S5）の感覚・運動も完全消失。24〜48時間後の再評価が必要（spinal shock排除）。" },
+    { code:"NX", name:"評価不能", desc:"意識障害・薬剤（鎮静・麻酔）・多発外傷による疼痛で神経学的評価が信頼できない状態。" }
+  ],
+  // 修飾因子（M分類）— 詳細説明付き
+  modifiers: [
+    { code:"M1", name:"後方張力帯損傷の不確定（PLC不確定）",
+      desc:"MRIで後方靱帯複合体（PLC：棘上靱帯・棘間靱帯・黄色靱帯・関節包靱帯）の損傷が疑われるが確定できない状態。PLCが断裂していればB2型（手術適応）に昇格する可能性がある。" },
+    { code:"M2", name:"患者要因（修飾する基礎疾患）",
+      desc:"骨粗鬆症・強直性脊椎炎（AS）・DISH（びまん性特発性骨増殖症）・既往脊椎手術・悪性腫瘍などが骨折の不安定性・固定計画・骨癒合を修飾する。M2がつく場合は固定範囲拡大や骨補強（骨移植・BMP）が必要になることが多い。" }
+  ]
+},
+
+ac_joint: {
+  name:"肩鎖関節脱臼", iconClass:"icon-arm", ao:"-",
+  region:"upper",
+  overview:"肩鎖関節脱臼はスポーツ・転倒による直達外力（肩峰への直撃）が多い。骨折ではなく靱帯損傷が主体だが、骨折分類マップに含める施設が多い。Rockwood分類が国際標準で、Type I〜IIIは保存、Type IV〜VIは手術適応が原則。",
+  side: true,
+  classifications:[
+    { id:"rockwood", name:"Rockwood分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"肩鎖関節脱臼を靱帯損傷の程度と鎖骨転位の方向で6型に分類。Type IIIは施設・患者背景によって治療方針が分かれる議論のある型。Type IV〜VIは手術適応。",
+      memo:"Type IIIは治療選択に議論あり。Type IV〜VIは高度不安定型で手術適応。Type IVは鎖骨の後方転位が特徴的。",
+      grades:[
+        { grade:"Type I", name:"肩鎖靱帯捻挫（烏口鎖骨靱帯温存）", desc:"靱帯部分断裂のみ。X線正常。保存", surg:"con" },
+        { grade:"Type II", name:"肩鎖靱帯断裂（烏口鎖骨靱帯捻挫）", desc:"肩鎖関節亜脱臼。烏口鎖骨靱帯は温存。保存", surg:"con" },
+        { grade:"Type III", name:"肩鎖・烏口鎖骨靱帯断裂（25〜100%転位）", desc:"完全脱臼。烏口鎖骨間距離25〜100%増大。治療選択に議論あり", surg:"dep" },
+        { grade:"Type IV", name:"後方転位（僧帽筋貫通）", desc:"鎖骨が後方へ転位し僧帽筋に刺入", surg:"op" },
+        { grade:"Type V", name:"高度上方転位（100〜300%）", desc:"烏口鎖骨間距離100〜300%増大。皮下に鎖骨が突出", surg:"op" },
+        { grade:"Type VI", name:"下方脱臼（鎖骨下型）", desc:"烏口突起または肩峰下への転位。高エネルギー", surg:"op" },
+      ]
+    },
+  ]
+},
+
+coronoid: {
+  name:"鈎状突起骨折", iconClass:"icon-forearm", ao:"-",
+  region:"upper",
+  overview:"鈎状突起（coronoid process）骨折は肘関節の安定性に関与する重要な骨折。単独骨折はまれで、肘関節脱臼・橈骨頭骨折・側副靱帯損傷との複合損傷（terrible triad等）として現れることが多い。分類によって損傷機序の理解が深まる。",
+  side: true,
+  classifications:[
+    { id:"regan_morrey", name:"Regan-Morrey分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"鈎状突起骨折を骨折片の大きさ（高さ）で3型に分類する最もシンプルな分類。小さい骨折でも複合損傷では肘不安定性が生じる点に注意。",
+      memo:"肘関節脱臼との合併（terrible triad）では肘の安定性が著しく低下する。骨片サイズが大きいほど肘の一次安定機構への影響が大きい。",
+      grades:[
+        { grade:"Type I", name:"鈎状突起先端骨折（高さ1/4以下）", desc:"前関節包付着部の剥離。単独。脱臼合併->修復", surg:"dep" },
+        { grade:"Type II", name:"中間骨折（高さ1/2以下）", desc:"肘安定性に影響。terrible triadの構成要素", surg:"op" },
+        { grade:"Type III", name:"基部骨折（高さ1/2超）", desc:"肘関節の一次安定構造喪失", surg:"op" },
+      ]
+    },
+    { id:"odriscoll", name:"O'Driscoll分類", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"鈎状突起骨折を骨折部位で3型に分類。Type I：先端骨折、Type II：前内側関節面骨折、Type III：基部骨折。Regan-Morreyより解剖学的に詳細で、靱帯損傷を含めた複合損傷の理解に有用。",
+      memo:"Type IIは内側副靱帯前束の付着部を含み内側不安定性を生じる。Type IIIはolecranon骨折との合併が多い。",
+      grades:[
+        { grade:"Type I", name:"先端骨折", desc:"鈎状突起先端の小骨片。前関節包付着部", surg:"dep" },
+        { grade:"Type II", name:"前内側関節面骨折", desc:"前内側関節面を含む骨折。内側副靱帯前束付着部を含む", surg:"op" },
+        { grade:"Type III", name:"基部骨折", desc:"鈎状突起基部の骨折。olecranon骨折との合併が多い", surg:"op" },
+      ]
+    },
+  ]
+},
+
+femur_head: {
+  name:"大腿骨頭骨折", iconClass:"icon-leg", ao:"-",
+  region:"lower",
+  overview:"大腿骨頭骨折は股関節後方脱臼（Posterior dislocation）に合併する。Pipkin分類で骨折位置と骨頭への血流温存を評価する。緊急整復（6時間以内）が骨頭壊死予防の最優先事項。",
+  side: true,
+  classifications:[
+    { id:"pipkin", name:"Pipkin分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"大腿骨頭骨折を骨折部位（荷重面以外 vs 荷重面）と合併損傷（頸部骨折・寛骨臼骨折）で4型に分類。Pipkin IVが最重症で手術難度が高い。まず股関節脱臼の緊急整復を優先し、その後に骨折の対応を決定する。",
+      memo:"緊急整復（6時間以内）が骨頭壊死予防の最優先事項。PipkinIIIは頸部骨折合併で骨頭壊死リスクが最大。PipkinIVは寛骨臼骨折も合併する最重症型。",
+      grades:[
+        { grade:"Pipkin I", name:"荷重面以下の骨頭骨折", desc:"円靱帯付着部以遠の小骨片。関節鏡的摘出 or 保存", surg:"dep" },
+        { grade:"Pipkin II", name:"荷重面を含む骨頭骨折", desc:"荷重面（fovea以上）の大骨片", surg:"op" },
+        { grade:"Pipkin III", name:"骨頭骨折＋大腿骨頸部骨折", desc:"骨頭壊死・偽関節リスク最大", surg:"op" },
+        { grade:"Pipkin IV", name:"骨頭骨折＋寛骨臼骨折", desc:"最重症。骨頭＋寛骨臼の両方を修復->高度技術要", surg:"op" },
+      ]
+    },
+  ]
+},
+
+femur_proximal: {
+  name:"大腿骨近位部骨折", iconClass:"icon-leg", ao:"AO 31",
+  region:"lower",
+  overview:"大腿骨近位部骨折は高齢者に多く、骨折後1年以内の死亡率が20〜30%と高い。骨折部位（頸部vs転子部）と骨折型が治療方針を決定する。早期手術（48時間以内）が予後改善に直結する。",
+  side: true,
+  classifications:[
+    { id:"ao31", name:"AO/OTA 31分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"大腿骨近位を骨折部位で3群に分類。31A=転子部（骨頭-頸部外）、31B=頸部（骨頭-頸部内）、31C=骨頭下（骨端線近傍）。部位によって骨頭壊死リスクと手術術式が大きく異なる。",
+      memo:"31Cは骨端線近傍の骨折で骨頭壊死リスクが最も高い。31Aは転子部、31Bは頸部の骨折。",
+      grades:[
+        { grade:"31A1", name:"単純転子部骨折", desc:"2骨片。骨片間圧縮良好", surg:"op" },
+        { grade:"31A2", name:"複合転子部骨折", desc:"後内側骨片あり。不安定型", surg:"op" },
+        { grade:"31A3", name:"逆斜走・横断骨折", desc:"内反不安定型", surg:"op" },
+        { grade:"31B1", name:"頸部骨折・単純型", desc:"非転位型。スクリュー固定（3本平行）", surg:"op" },
+        { grade:"31B2", name:"頸部骨折・転位型", desc:"転位あり。高齢者。若年者", surg:"op" },
+        { grade:"31B3", name:"頸部骨折・粉砕型", desc:"粉砕・骨頭壊死高リスク", surg:"op" },
+        { grade:"31C1", name:"骨頭下骨折・単純型", desc:"骨端線近傍。壊死リスク最大", surg:"op" },
+        { grade:"31C2", name:"骨頭下骨折・粉砕型", desc:"BHA/THA検討", surg:"op" },
+        { grade:"31C3", name:"骨頭下骨折・複雑型", desc:"人工股関節が現実的なこと多い", surg:"op" },
+      ]
+    },
+    { id:"garden", name:"Garden分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"大腿骨頸部骨折を転位量で4段階に分類する最も広く使われる分類。骨頭壊死と偽関節のリスクが転位量と相関する。I・IIは非転位型、III・IVは転位型として臨床的に2群に大別されることが多い。",
+      memo:"stage 1・2（非転位型）は骨頭壊死リスクが低い。stage 3・4（転位型）は骨頭への血流が損傷されており壊死リスクが高い。",
+      grades:[
+        { grade:"stage 1", name:"不全骨折（外反転位）", desc:"骨頭trabeculaが外反方向。血流ほぼ温存", surg:"op" },
+        { grade:"stage 2", name:"完全骨折・非転位", desc:"完全骨折だが転位なし。骨頭壊死率低", surg:"op" },
+        { grade:"stage 3", name:"完全骨折・部分転位", desc:"骨頭が部分的に転位。壊死リスク中程度", surg:"op" },
+        { grade:"stage 4", name:"完全骨折・完全転位", desc:"骨頭が完全に転位・回転。壊死リスク最大", surg:"op" },
+      ]
+    },
+    { id:"pauwels", name:"Pauwels分類", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"大腿骨頸部骨折線の水平面に対する角度を測定し、力学的安定性を3型に分類。角度が急峻なほど荷重時のせん断力が大きく、固定困難・偽関節リスクが増加する。",
+      memo:"骨折線の角度が大きいほどせん断力が優位となり不安定性が増す。第3度は偽関節リスクが最大。",
+      grades:[
+        { grade:"第1度", name:"骨折角30°未満（安定型）", desc:"圧縮力が優位。骨癒合良好", surg:"op" },
+        { grade:"第2度", name:"骨折角30〜50°（中等型）", desc:"せん断力と圧縮力が混在", surg:"op" },
+        { grade:"第3度", name:"骨折角50°超（不安定型）", desc:"せん断力が最大。偽関節リスク最大", surg:"op" },
+      ]
+    },
+    { id:"evans", name:"Evans分類（転子部骨折）", badgeLabel:"補", badgeClass:"badge-green",
+      desc:"大腿骨転子部骨折の安定性を骨片数と後内側壁（皮質）の連続性で分類。安定型と不安定型で内固定の術式が変わる。現在はJensen改訂版がより使われることが多い。",
+      memo:"後内側壁の粉砕が内反変形の原因。骨片数が多いほど不安定性が高まる。",
+      grades:[
+        { grade:"Evans I", name:"2骨片・安定型", desc:"後内側皮質連続。DHS固定で良好", surg:"op" },
+        { grade:"Evans II", name:"3骨片・不安定型", desc:"後内側骨片あり。PFN推奨", surg:"op" },
+        { grade:"Evans III", name:"4骨片・高度不安定（粉砕）", desc:"後内側粉砕。ロングPFN考慮", surg:"op" },
+      ]
+    },
+    { id:"jensen", name:"Jensen分類（Evans改訂版）", badgeLabel:"改", badgeClass:"badge-purple",
+      desc:"Evansを大転子骨片・小転子骨片の有無で5型に細分化。後内側壁の欠損パターンが内固定の固定性に直接影響するため術前計画に有用。",
+      memo:"小転子骨片（Jensen III・IV）は後内側壁欠損による内反不安定性を生じる。Jensen Vは粉砕型で固定難易度が最高。",
+      grades:[
+        { grade:"Jensen I", name:"単純2骨片", desc:"最安定。DHS", surg:"op" },
+        { grade:"Jensen II", name:"3骨片＋大転子骨片", desc:"大転子骨片。やや不安定", surg:"op" },
+        { grade:"Jensen III", name:"3骨片＋小転子骨片", desc:"後内側壁欠損->不安定", surg:"op" },
+        { grade:"Jensen IV", name:"4骨片（大＋小転子）", desc:"高度不安定。ロング髄内釘", surg:"op" },
+        { grade:"Jensen V", name:"粉砕型", desc:"固定困難。骨セメント補強も", surg:"op" },
+      ]
+    },
+    { id:"nakano", name:"中野3DCT分類（転子部骨折）", badgeLabel:"局", badgeClass:"badge-purple",
+      desc:"3DCTで転子部骨折の後内側骨片の有無・骨片数・形態を評価する分類。Type I（後内側骨片あり）とType II（後内側骨片なし）に大別され、Type Iはさらに骨片数（2/3/4part）とサブタイプ（A〜D）で細分される。",
+      memo:"Type I 3part-A・B・4partは後内側壁欠損による内反転位リスクが高い。3DCT再構成による術前の骨片形態把握が重要。当院整形外科で術前評価に使用。",
+      grades:[
+        { grade:"I-2part-A", name:"Type I 2part A（後内側骨片あり・小転子単純分離）", desc:"後内側骨片あり。2骨片。後内側壁の単純分離", surg:"op" },
+        { grade:"I-2part-B", name:"Type I 2part B", desc:"後内側骨片あり。2骨片。Bパターン", surg:"op" },
+        { grade:"I-2part-C", name:"Type I 2part C", desc:"後内側骨片あり。2骨片。Cパターン", surg:"op" },
+        { grade:"I-2part-D", name:"Type I 2part D", desc:"後内側骨片あり。2骨片。Dパターン（骨頭側骨片含む）", surg:"op" },
+        { grade:"I-3part-A", name:"Type I 3part A（高度不安定）", desc:"後内側骨片あり。3骨片。後内側壁の広範な分離。不安定", surg:"op" },
+        { grade:"I-3part-B", name:"Type I 3part B（高度不安定）", desc:"後内側骨片あり。3骨片。Bパターン。不安定", surg:"op" },
+        { grade:"I-3part-C", name:"Type I 3part C", desc:"後内側骨片あり。3骨片。Cパターン", surg:"op" },
+        { grade:"I-3part-D", name:"Type I 3part D", desc:"後内側骨片あり。3骨片。Dパターン", surg:"op" },
+        { grade:"I-4part", name:"Type I 4part（最高度不安定）", desc:"後内側骨片あり。4骨片以上の粉砕。内反転位リスク最大", surg:"op" },
+        { grade:"II-1", name:"Type II（後内側骨片なし）パターン1", desc:"後内側骨片を認めない。比較的安定", surg:"op" },
+        { grade:"II-2", name:"Type II（後内側骨片なし）パターン2", desc:"後内側骨片を認めない。比較的安定", surg:"op" },
+      ]
+    },
+    { id:"ikuta", name:"生田分類（転子部骨折）", badgeLabel:"局", badgeClass:"badge-purple",
+      desc:"転子部骨折を骨折線の形態と後内側骨片の状態でA・B・Cの3型に分類する。各型にサブタイプ（a/b/c）があり、後内側骨片の大きさと転位方向が安定性の鍵となる。",
+      memo:"B・C型は後内側壁欠損による内反転位リスクあり。サブタイプcが最も粉砕度・不安定度が高い。",
+      grades:[
+        { grade:"A-a", name:"A型 aサブタイプ", desc:"骨折線が比較的単純。後内側骨片小", surg:"op" },
+        { grade:"A-b", name:"A型 bサブタイプ", desc:"後内側骨片中等度", surg:"op" },
+        { grade:"A-c", name:"A型 cサブタイプ", desc:"後内側骨片大。内反リスクあり", surg:"op" },
+        { grade:"B-a", name:"B型 aサブタイプ", desc:"後内側壁の部分欠損。不安定型", surg:"op" },
+        { grade:"B-b", name:"B型 bサブタイプ", desc:"後内側壁欠損中等度", surg:"op" },
+        { grade:"B-c", name:"B型 cサブタイプ", desc:"後内側壁広範欠損。内反転位リスク高", surg:"op" },
+        { grade:"C-a", name:"C型 aサブタイプ", desc:"後内側壁ほぼ完全欠損", surg:"op" },
+        { grade:"C-b", name:"C型 bサブタイプ", desc:"高度不安定。粉砕要素あり", surg:"op" },
+        { grade:"C-c", name:"C型 cサブタイプ", desc:"高度粉砕・最不安定。固定困難", surg:"op" },
+      ]
+    },
+    { id:"futamura", name:"Futamura分類（転子間骨折）", badgeLabel:"局", badgeClass:"badge-purple",
+      desc:"大腿骨転子間骨折（intertrochanteric fracture）を骨折線の方向と後内側壁の損傷パターンで分類する。Evansが骨片数に着目するのに対し、Futamura分類は骨折線の走行（内反・外反・横断）を重視し、髄内釘の挿入方向と固定安定性の予測に活用される。",
+      memo:"内反型（F-II）は整復後に内反再転位しやすく不安定。横断型（F-III）は逆斜走骨折に相当し最も不安定。当院整形外科で術前計画に使用。",
+      grades:[
+        { grade:"Futamura I", name:"外反型（valgus）", desc:"骨折線が外反方向。比較的安定。DHS or 髄内釘", surg:"op" },
+        { grade:"Futamura II", name:"内反型（varus）", desc:"骨折線が内反方向。内反再転位リスク", surg:"op" },
+        { grade:"Futamura III", name:"横断型（transverse/逆斜走）", desc:"横断〜逆斜走。最不安定", surg:"op" },
+      ]
+    },
+  ]
+},
+
+periprosthetic_femur: {
+  name:"ステム周囲骨折", iconClass:"icon-leg", ao:"-",
+  overview:"人工股関節（THA）・人工膝関節（TKA）術後のインプラント周囲骨折。Vancouver分類（大腿骨ステム周囲）が国際標準。日本ではBaba分類も使用される。インプラントの固定性（ステムの緩み）が治療方針を決定する最重要因子。",
+  side: true,
+  classifications:[
+    { id:"vancouver", name:"Vancouver分類（THAステム周囲骨折）", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"THA後の大腿骨骨折をステムとの位置関係（A:転子部 / B:ステム先端周囲 / C:ステム先端遠位）と、ステムの固定性（安定 vs 緩み）・骨量で分類する国際標準。治療方針がタイプによって大きく異なる。",
+      memo:"ステムの固定性（安定・緩み）と骨量の評価が治療方針の核心。B2・B3はステム緩みを伴い再置換が必要。B3は骨量不足を伴い難易度が最高。",
+      grades:[
+        { grade:"Vancouver AG", name:"大転子骨折", desc:"大転子単独の骨折。転位の程度が安定性を左右", surg:"dep" },
+        { grade:"Vancouver AL", name:"小転子骨折", desc:"多くは保存療法", surg:"con" },
+        { grade:"Vancouver B1", name:"ステム先端周囲骨折・ステム安定", desc:"ステム固定性良好", surg:"op" },
+        { grade:"Vancouver B2", name:"ステム先端周囲骨折・ステム緩み・骨量良好", desc:"ロングステム再置換が基本", surg:"op" },
+        { grade:"Vancouver B3", name:"ステム先端周囲骨折・ステム緩み・骨量不足", desc:"腫瘍型ステムまたは大量同種骨移植", surg:"op" },
+        { grade:"Vancouver C", name:"ステム遠位端より遠位の骨折", desc:"ステムに関係なし->通常の大腿骨骨折治療（プレート）", surg:"op" },
+      ]
+    },
+    { id:"baba", name:"Baba分類（ステム周囲骨折）", badgeLabel:"局", badgeClass:"badge-purple",
+      desc:"Vancouverを基礎としつつ日本の高齢者骨粗鬆症症例に対応するよう改訂された分類。骨量・骨質（骨粗鬆症の程度）とセメント/セメントレスの違いを考慮したサブタイプを設定。当院整形外科で使用。",
+      memo:"骨粗鬆症の程度がステム固定性に影響する。転子骨片の処理が必要な場合がある。",
+      grades:[
+        { grade:"Baba I", name:"ステム近位部骨折（安定型）", desc:"ステム安定。骨量保持", surg:"op" },
+        { grade:"Baba II", name:"ステム周囲骨折・骨量中等度", desc:"ステム緩み疑い->ロングステム再置換", surg:"op" },
+        { grade:"Baba III", name:"ステム周囲骨折・骨量不足・骨粗鬆症高度", desc:"ステム緩み＋骨量不足。固定困難な高度不安定", surg:"op" },
+        { grade:"Baba IV", name:"ステム遠位骨折", desc:"Locking plate固定（Vancouver Cに相当）", surg:"op" },
+      ]
+    },
+  ]
+},
+
+femur_shaft: {
+  name:"大腿骨骨幹部骨折", iconClass:"icon-leg", ao:"AO 32",
+  region:"lower",
+  overview:"大腿骨骨幹部骨折は高エネルギー外傷に多く、大量出血（1〜2L）を生じる。早期手術（髄内釘）が標準。Winquist-Hansen分類が骨折粉砕度の共通言語として使われる。",
+  side: true,
+  classifications:[
+    { id:"ao32", name:"AO/OTA 32分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"骨折形態（単純・くさび・粉砕）による3群分類。全型で髄内釘が第一選択。",
+      memo:"閉鎖性骨折でも大腿部の腫脹・変形で大量出血（1〜2L）が進行中のことがある。初療での2ルート確保・輸血準備を優先。",
+      grades:[
+        { grade:"32A", name:"単純骨折（螺旋・斜走・横断）", desc:"髄内釘（静的固定）。早期荷重可能", surg:"op" },
+        { grade:"32B", name:"くさび型（蝶型骨片）", desc:"髄内釘。蝶型骨片は主骨片間に挟まれる", surg:"op" },
+        { grade:"32C", name:"複雑・粉砕骨折", desc:"ロング髄内釘。短縮・回旋に注意", surg:"op" },
+      ]
+    },
+    { id:"winquist", name:"Winquist-Hansen分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"骨折の粉砕度（蝶型骨片の大きさ）を5段階で評価。髄内釘の静的固定と動的固定の選択に影響する。",
+      memo:"Winquist 0〜II：静的固定後に動的固定（ダイナマイゼーション）を選択可能。Winquist III〜IV：蝶型骨片による皮質支持なし->静的固定が必須。回旋制御が特に重要。",
+      grades:[
+        { grade:"Grade 0", name:"粉砕なし", desc:"単純骨折", surg:"op" },
+        { grade:"Grade I", name:"蝶型骨片が小（25%未満）", desc:"皮質支持残存->安定固定", surg:"op" },
+        { grade:"Grade II", name:"蝶型骨片が中（25〜50%）", desc:"ある程度の皮質支持", surg:"op" },
+        { grade:"Grade III", name:"蝶型骨片が大（50〜100%）", desc:"皮質支持なし->静的固定必須", surg:"op" },
+        { grade:"Grade IV", name:"複数部位の粉砕・セグメント骨折", desc:"最不安定。回旋・長さ管理が困難", surg:"op" },
+      ]
+    },
+  ]
+},
+
+femur_distal: {
+  name:"大腿骨遠位端骨折", iconClass:"icon-leg", ao:"AO 33",
+  region:"lower",
+  overview:"大腿骨遠位端骨折は高エネルギー外傷と骨粗鬆症性低エネルギー骨折の両極端がある。関節内骨折の整復精度が変形性膝関節症予防に直結する。",
+  side: true,
+  classifications:[
+    { id:"ao33", name:"AO/OTA 33分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"関節外（A）・部分関節内（B）・完全関節内（C）の3群分類。C群の関節内粉砕は外科的課題が大きい。",
+      memo:"33C（完全関節内）：関節面整復後にレトロネイルまたはラテラルロッキングプレートで固定。内側皮質欠損には骨移植または内側補助プレートを検討。",
+      grades:[
+        { grade:"33A", name:"関節外骨折", desc:"レトロネイルまたはプレート", surg:"op" },
+        { grade:"33B", name:"部分関節内骨折（Hoffa骨折含む）", desc:"Hoffa骨折は冠状面骨折", surg:"op" },
+        { grade:"33C", name:"完全関節内粉砕骨折", desc:"関節面整復＋プレート。骨移植要することも", surg:"op" },
+      ]
+    },
+    { id:"hoffa", name:"Hoffa骨折（冠状面骨折）", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"大腿骨遠位の冠状面骨折。外顆に多い。正面X線では目立たず側面・CTで診断。膝関節可動域に直接影響するため見逃し禁忌。",
+      memo:"ラグスクリュー（前方->後方方向）で固定。単独骨折と複合骨折（33B相当）で手術ルートが変わる。MRIで靱帯損傷・半月板損傷の合併を評価。",
+      grades:[
+        { grade:"外側顆Hoffa", name:"外顆冠状面骨折（多い）", desc:"前方からラグスクリュー固定", surg:"op" },
+        { grade:"内側顆Hoffa", name:"内顆冠状面骨折", desc:"内側アプローチ＋スクリュー", surg:"op" },
+        { grade:"両顆Hoffa", name:"両顆同時骨折（まれ）", desc:"最難度。前後からのアプローチ", surg:"op" },
+      ]
+    },
+  ]
+},
+
+patella: {
+  name:"膝蓋骨骨折", iconClass:"icon-leg", ao:"AO 34",
+  region:"lower",
+  overview:"膝蓋骨骨折は大腿四頭筋の伸展機構の断絶をきたす。転位2mm超または伸展機構障害は手術適応。変形性関節症予防のための関節面整復が重要。",
+  side: true,
+  classifications:[
+    { id:"ao34", name:"AO/OTA 34分類 ＋ 形態分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"横断・縦走・粉砕・骨軟骨骨折の形態分類が実臨床で多く使われる。転位量（2mm）と伸展機構の連続性が治療の分岐点。",
+      memo:"転位2mm超または伸展機構断裂が不安定性の指標。粉砕型は関節面再建困難なことがある。",
+      grades:[
+        { grade:"横断骨折（最多）", name:"膝蓋骨横断", desc:"転位あれば伸展機構断裂->TBW", surg:"dep" },
+        { grade:"粉砕骨折", name:"多骨片粉砕", desc:"多骨片粉砕。関節面の再建困難", surg:"op" },
+        { grade:"縦走骨折", name:"縦走・辺縁骨折", desc:"伸展機構温存のことが多い", surg:"con" },
+        { grade:"骨軟骨骨折", name:"関節面骨折", desc:"脱臼に伴うことが多い。MRIで評価", surg:"dep" },
+      ]
+    },
+  ]
+},
+
+tibia_proximal: {
+  name:"脛骨高原骨折", iconClass:"icon-foot", ao:"AO 41",
+  region:"lower",
+  overview:"脛骨高原骨折は膝関節内骨折。Schatzker分類が世界標準。CTと関節鏡が正確な骨折評価に必須。骨折形態と靱帯損傷・半月板損傷の合併が治療複雑性を決める。",
+  side: true,
+  classifications:[
+    { id:"schatzker", name:"Schatzker分類", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"脛骨高原骨折を外顆・内顆・両顆・部位の組み合わせで6型に分類。Type Iから順に重症度が増す傾向。Type IV〜VIは高エネルギー損傷で血管損傷に注意。",
+      memo:"Type I〜IIIは外側高原骨折。Type IV〜VIは高エネルギー損傷で血管損傷・コンパートメント症候群に注意。",
+      grades:[
+        { grade:"Type I", name:"外側顆楔状骨折（非転位）", desc:"若年者・高骨密度。ラグスクリュー", surg:"op" },
+        { grade:"Type II", name:"外側顆楔状＋陥没", desc:"高齢者・骨粗鬆症。開大整復＋骨移植", surg:"op" },
+        { grade:"Type III", name:"外側顆純粋陥没骨折", desc:"骨折辺縁なし。関節鏡＋骨移植", surg:"op" },
+        { grade:"Type IV", name:"内側顆骨折", desc:"高エネルギー。腓骨神経・膝窩動脈損傷注意", surg:"op" },
+        { grade:"Type V", name:"両側顆骨折（高原分離）", desc:"両顆が分離。二重プレート", surg:"op" },
+        { grade:"Type VI", name:"骨幹部との連続骨折", desc:"最重症。粉砕。二重プレートor外固定", surg:"op" },
+      ]
+    },
+    { id:"ao41", name:"AO/OTA 41分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"関節外（A）・部分関節内（B）・完全関節内（C）の3群分類。Schatzkerと相互参照される。",
+      memo:"41Cは完全関節内骨折で難易度が高い。術前CTによる骨折形態の把握が重要。",
+      grades:[
+        { grade:"41A", name:"関節外骨折", desc:"脛骨近位骨幹端の骨折", surg:"dep" },
+        { grade:"41B", name:"部分関節内骨折", desc:"Schatzker I〜III相当", surg:"op" },
+        { grade:"41C", name:"完全関節内骨折", desc:"Schatzker IV〜VI相当", surg:"op" },
+      ]
+    },
+    { id:"tokunaga", name:"徳永分類（脛骨高原後方骨折）", badgeLabel:"局", badgeClass:"badge-purple",
+      desc:"脛骨高原後方骨折を外側プラトー5型・内側プラトー2型の計7型に分類する。正面X線では見逃しやすくCT（冠状断・矢状断）が必須。Schatzker分類と組み合わせて記載するのが当院での運用。",
+      memo:"外側プラトー後方骨折はType I〜Vで形態が大きく異なる。内側プラトー後方骨折はType IIで5mm以上の後方転位が生じ不安定性が高い。",
+      grades:[
+        { grade:"外側 Type I",  name:"外側プラトー・小転位型", desc:"ほとんど転位なし", surg:"op" },
+        { grade:"外側 Type II", name:"外側プラトー・後方楔型", desc:"関節面と後壁が一塊として後方に傾斜", surg:"op" },
+        { grade:"外側 Type III",name:"外側プラトー・陥没型", desc:"陥没した関節面と転位した後壁が分離", surg:"op" },
+        { grade:"外側 Type IV", name:"外側プラトー・前方傾斜型", desc:"関節面と後壁が一塊として前方に傾斜", surg:"op" },
+        { grade:"外側 Type V",  name:"外側プラトー・後方転位型", desc:"後方転位あり", surg:"op" },
+        { grade:"内側 Type I",  name:"内側プラトー・小転位型", desc:"ほとんど転位なし", surg:"op" },
+        { grade:"内側 Type II", name:"内側プラトー・後方転位型", desc:"5mm以上の後方転位あり", surg:"op" },
+      ]
+    },
+  ]
+},
+
+tibia_shaft: {
+  name:"脛骨骨幹部骨折", iconClass:"icon-foot", ao:"AO 42",
+  region:"lower",
+  overview:"脛骨骨幹部骨折は軟部組織の少ない解剖学的特性から開放骨折が多い（最多の開放骨折部位）。Gustilo-Anderson分類で開放度を評価し、汚染・軟部組織損傷の程度で創部管理と手術時期を決定する。",
+  side: true,
+  classifications:[
+    { id:"ao42", name:"AO/OTA 42分類", badgeLabel:"AO", badgeClass:"badge-blue",
+      desc:"骨折形態（単純・くさび・粉砕）の3群分類。ほとんどで髄内釘が第一選択。",
+      memo:"閉鎖骨折：髄内釘が標準。開放骨折：Gustilo分類と組み合わせて管理。コンパートメント症候群は脛骨骨折の最重要合併症—疼痛・compartment圧（30mmHg超）で緊急減張切開。",
+      grades:[
+        { grade:"42A", name:"単純骨折", desc:"髄内釘。早期荷重を目指す", surg:"op" },
+        { grade:"42B", name:"くさび型骨折", desc:"髄内釘±ラグスクリュー", surg:"op" },
+        { grade:"42C", name:"複雑・粉砕骨折", desc:"ロング髄内釘またはIlizarov外固定器", surg:"op" },
+      ]
+    },
+    { id:"gustilo", name:"Gustilo-Anderson分類（開放骨折）", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"開放骨折の創部汚染・軟部組織損傷・骨折形態を総合評価する国際標準。抗菌薬投与と洗浄デブリードマンの時間・範囲の指針となる。",
+      memo:"全開放骨折：受傷6時間以内に手術室で洗浄デブリードマン。抗菌薬はI型->セフェム、III B/C型->セフェム＋アミノグリコシド±ペニシリン系（嫌気性菌）。III C型は血管外科との協働が必須。",
+      grades:[
+        { grade:"Type I", name:"創1cm未満・清潔", desc:"汚染軽度。洗浄->一期縫合可。セフェム1剤", surg:"op" },
+        { grade:"Type II", name:"創1〜10cm・中等度軟部損傷", desc:"広範な洗浄デブリードマン。一期縫合or遅延縫合", surg:"op" },
+        { grade:"Type III A", name:"広範な軟部組織損傷・骨露出あり", desc:"複数回デブリードマン。軟部組織で骨被覆可能", surg:"op" },
+        { grade:"Type III B", name:"軟部組織欠損・骨露出（被覆不可）", desc:"遊離皮弁等の再建術が必要", surg:"op" },
+        { grade:"Type III C", name:"動脈損傷合併", desc:"血管再建が必要。切断リスク最大", surg:"op" },
+      ]
+    },
+  ]
+},
+
+ankle: {
+  name:"足関節骨折", iconClass:"icon-foot", ao:"AO 44",
+  region:"lower",
+  overview:"足関節骨折は下肢骨折の中で最も多い。腓骨骨折（Weber/Danis-Weber分類）の骨折高位と靱帯損傷パターン（Lauge-Hansen分類）が手術適応と術式を決定する。",
+  side: true,
+  classifications:[
+    { id:"weber", name:"Weber分類（Danis-Weber）", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"腓骨骨折部位を脛腓靱帯結合（syndesmosis）との位置関係で3型に分類。高位になるほど脛腓靱帯結合が不安定になり手術適応が高まる。最もよく使われる臨床分類。",
+      memo:"Weber A：脛腓靱帯結合は安定->保存療法多い。Weber B：脛腓靱帯結合は部分損傷->転位なければ保存、転位あれば固定。Weber C：脛腓靱帯結合断裂->ほぼ手術（腓骨プレート＋スクリュー固定）。",
+      grades:[
+        { grade:"Weber A", name:"脛腓関節レベル以下の腓骨骨折", desc:"脛腓靱帯結合は安定。保存療法", surg:"con" },
+        { grade:"Weber B", name:"脛腓関節レベルの腓骨骨折", desc:"脛腓靱帯部分損傷。転位量で判断", surg:"dep" },
+        { grade:"Weber C", name:"脛腓関節レベル以上の腓骨骨折", desc:"脛腓靱帯断裂", surg:"op" },
+      ]
+    },
+    { id:"lauge_hansen", name:"Lauge-Hansen分類", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"損傷機転（足位置＋外力方向）から靱帯・骨の損傷進行順序を規定する分類。靱帯損傷パターンの理解に有用。臨床では外旋型（SE・PE）が多数を占める。",
+      memo:"回外外旋型（SE）が最多（約65%）。SE IVは前下脛腓靱帯・腓骨・後果・内果の4構造損傷を伴う。距骨の外方転位（2mm超）が不安定性のサイン。",
+      grades:[
+        { grade:"SA I", name:"回外内転型 Stage I", desc:"内側引き裂き損傷。靱帯損傷中心", surg:"dep" },
+        { grade:"SA II", name:"回外内転型 Stage II", desc:"外果・内果骨折を合併", surg:"dep" },
+        { grade:"SE I", name:"回外外旋型 Stage I", desc:"前下脛腓靱帯損傷", surg:"dep" },
+        { grade:"SE II", name:"回外外旋型 Stage II", desc:"腓骨骨折（Weber B相当）", surg:"dep" },
+        { grade:"SE III", name:"回外外旋型 Stage III", desc:"後果骨折を合併", surg:"dep" },
+        { grade:"SE IV", name:"回外外旋型 Stage IV", desc:"4構造損傷。手術適応多い", surg:"op" },
+        { grade:"PA I", name:"回内外転型 Stage I", desc:"内果骨折", surg:"dep" },
+        { grade:"PA II", name:"回内外転型 Stage II", desc:"脛腓靱帯損傷を合併", surg:"dep" },
+        { grade:"PA III", name:"回内外転型 Stage III", desc:"腓骨横断骨折", surg:"op" },
+        { grade:"PE I", name:"回内外旋型 Stage I", desc:"内果骨折", surg:"dep" },
+        { grade:"PE II", name:"回内外旋型 Stage II", desc:"脛腓靱帯損傷", surg:"dep" },
+        { grade:"PE III", name:"回内外旋型 Stage III", desc:"高位腓骨骨折（Weber C相当）", surg:"op" },
+        { grade:"PE IV", name:"回内外旋型 Stage IV", desc:"後果・内果損傷を合併", surg:"op" },
+      ]
+    },
+  ]
+},
+
+talus: {
+  name:"距骨骨折", iconClass:"icon-foot", ao:"-",
+  region:"lower",
+  overview:"距骨骨折はまれだが重篤。骨頭の60〜70%が軟骨に覆われ、血流は限られた骨表面から供給される（逆行性血流）。骨頭壊死（AVN）が最大の合併症リスク。",
+  side: true,
+  classifications:[
+    { id:"hawkins", name:"Hawkins分類（距骨頸部骨折）", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"距骨頸部骨折を脱臼の程度（血流障害の程度）で4型に分類。Hawkins分類が高いほど骨頭壊死（AVN）リスクが増大する。距骨下関節・足関節の脱臼の有無が分類の核心。",
+      memo:"緊急整復（6〜8時間以内）が骨頭壊死予防に重要。Hawkins sign（骨頭下の骨萎縮）はX線で確認できる骨頭壊死リスク低下の徴候。",
+      grades:[
+        { grade:"Hawkins I", name:"非転位骨折（脱臼なし）", desc:"AVNリスク0〜13%。経皮固定または保存", surg:"dep" },
+        { grade:"Hawkins II", name:"距骨下関節亜脱臼・脱臼", desc:"距骨下関節の亜脱臼または脱臼を合併。AVNリスク20〜50%", surg:"op" },
+        { grade:"Hawkins III", name:"足関節・距骨下両関節脱臼", desc:"AVNリスク約83%。緊急手術", surg:"op" },
+        { grade:"Hawkins IV", name:"足根中足関節も脱臼（Canale-Kelly）", desc:"AVNリスク最大。緊急手術。切断リスクあり", surg:"op" },
+      ]
+    },
+  ]
+},
+
+calcaneus: {
+  name:"踵骨骨折", iconClass:"icon-foot", ao:"-",
+  region:"lower",
+  overview:"踵骨骨折は足根骨骨折の最多（約60%）。高所からの転落で生じ、脊椎圧迫骨折（10%）・対側踵骨骨折の合併を必ず検索する。Bohler角の減少（正常20〜40°）が骨折を示唆し、CTが手術計画に必須。",
+  side: true,
+  classifications:[
+    { id:"sanders", name:"Sanders分類（CT評価）", badgeLabel:"!", badgeClass:"badge-red",
+      desc:"踵骨のCT冠状断で後距踵関節面の骨折線の数と位置を評価する分類。Type IVが最重症。手術適応とアプローチ決定に直結する実用的分類。",
+      memo:"Sanders IVは高度粉砕で関節面再建が困難。Bohler角の減少（正常20〜40°）が骨折の重症度を示す。",
+      grades:[
+        { grade:"Sanders I", name:"非転位骨折", desc:"距踵関節面転位なし。保存療法", surg:"con" },
+        { grade:"Sanders IIa", name:"後関節面2骨片（外側）", desc:"2骨片骨折。関節面の転位", surg:"op" },
+        { grade:"Sanders IIb", name:"後関節面2骨片（中央）", desc:"2骨片骨折。関節面の転位", surg:"op" },
+        { grade:"Sanders IIc", name:"後関節面2骨片（内側）", desc:"2骨片骨折。関節面の転位", surg:"op" },
+        { grade:"Sanders IIIab", name:"後関節面3骨片", desc:"後関節面3骨片粉砕", surg:"op" },
+        { grade:"Sanders IIIac", name:"後関節面3骨片", desc:"後関節面3骨片粉砕", surg:"op" },
+        { grade:"Sanders IIIbc", name:"後関節面3骨片", desc:"後関節面3骨片粉砕", surg:"op" },
+        { grade:"Sanders IV", name:"高度粉砕骨折（4骨片以上）", desc:"関節面再建困難->一期固定->二期固定術", surg:"op" },
+      ]
+    },
+    { id:"calc_tongue", name:"Essex-Lopresti分類（踵骨形態）", badgeLabel:"臨", badgeClass:"badge-amber",
+      desc:"踵骨骨折を後関節面（距踵関節面）との関係で2型に分類。機序と術式の理解に有用。",
+      memo:"舌型骨折（tongue type）は跟腱の牽引力で骨片が垂直に転位しやすい。早期整復が皮膚壊死・アキレス腱損傷の予防に重要。",
+      grades:[
+        { grade:"Joint depression型", name:"後関節面陥没型（多い）", desc:"距踵関節面が垂直方向に陥没", surg:"op" },
+        { grade:"Tongue型", name:"舌状骨片型", desc:"跟腱牽引で垂直転位->皮膚壊死リスク", surg:"op" },
+      ]
+    },
+  ]
+},
+
+}; // END BONES
+
+// ===================================================
+//  カラー定義
+// ===================================================
+const ICON_COLORS = {
+  icon_arm:     '#5ac8fa',
+  icon_forearm: '#34c759',
+  icon_hand:    '#30d158',
+  icon_pelvis:  '#ff9500',
+  icon_spine:   '#af52de',
+  icon_leg:     '#ff3b30',
+  icon_foot:    '#ff6b35',
+  icon_bone:    '#8e8e93',
+};
+
+const REGION_LABEL = { upper:'上肢', trunk:'体幹・骨盤', lower:'下肢', other:'その他' };
+const REGION_ORDER = ['upper','trunk','lower','other'];
+const BONE_ORDER = {
+  scapula:1, floating_shoulder:2, ac_joint:3, clavicle:4,
+  humerus_proximal:5, humerus_shaft:6, humerus_distal:7,
+  coronoid:8, radius_proximal:9, forearm_shaft:10,
+  radius_distal:11, scaphoid:12,
+  spine:20, pelvis:21, acetabulum:22,
+  femur_head:30, femur_proximal:31, periprosthetic_femur:32,
+  femur_shaft:33, femur_distal:34, patella:35,
+  tibia_proximal:36, tibia_shaft:37,
+  ankle:38, talus:39, calcaneus:40,
+};
+
+// ===================================================
+//  状態
+// ===================================================
+let state = {
+  bone: null,
+  side: '右',
+  selected: {},
+  sideSelections: {},
+  buffer: [],
+  spine: { region: 'thoracic', vertebrae: {} },
+  screen: 'bones', // 'bones' | 'classif' | 'result'
+  searchQ: '',
+};
+
+// ===================================================
+//  画面遷移
+// ===================================================
+// スクリーン切替の共通関数（クラスを確実にリセット）
+function showScreen(id) {
+  const all = ['bones','classif','result'];
+  all.forEach(name => {
+    const el = document.getElementById('screen-' + name);
+    if (!el) return;
+    el.classList.remove('active','behind','hidden-screen');
+    if (name === id) {
+      el.classList.add('active');
+    } else {
+      // 戻り先より後ろの画面は右へ隠す、手前の画面は左へ引く
+      const orders = {bones:0, classif:1, result:2};
+      el.classList.add(orders[name] < orders[id] ? 'behind' : 'hidden-screen');
+    }
+  });
+  state.screen = id;
+  updateNav();
+}
+
+function goBack() {
+  if (state.screen === 'result') {
+    showScreen('bones');
+    hidePreviewBar();
+  } else if (state.screen === 'classif') {
+    showScreen('bones');
+    hidePreviewBar();
+  }
+}
+
+function goToResult() {
+  renderResultScreen();
+  showScreen('result');
+  hidePreviewBar();
+}
+
+function updateNav() {
+  const back = document.getElementById('nav-back');
+  const title = document.getElementById('nav-title');
+  if (state.screen === 'bones') {
+    back.classList.remove('show');
+    title.textContent = '骨折分類マップ';
+  } else if (state.screen === 'classif') {
+    back.classList.add('show');
+    const b = BONES[state.bone];
+    title.textContent = b ? b.name : '分類選択';
+  } else if (state.screen === 'result') {
+    back.classList.add('show');
+    title.textContent = '生成テキスト';
+  }
+}
+
+// 初期状態: bonesのみ表示
+(function() {
+  const style = document.createElement('style');
+  style.textContent = '.hidden-screen { transform: translateX(100%) !important; }';
+  document.head.appendChild(style);
+  ['classif','result'].forEach(name => {
+    const el = document.getElementById('screen-' + name);
+    if (el) { el.classList.remove('active'); el.classList.add('hidden-screen'); }
+  });
+})();
+
+// ===================================================
+//  SCREEN 1: 部位一覧
+// ===================================================
+function initBoneList() {
+  // カテゴリタブ
+  const tabs = document.getElementById('cat-tabs');
+  tabs.innerHTML = [
+    {id:'all', label:'すべて'},
+    {id:'upper', label:'上肢'},
+    {id:'trunk', label:'体幹'},
+    {id:'lower', label:'下肢'},
+  ].map(t => `<button class="cat-tab ${t.id==='all'?'active':''}" data-cat="${t.id}" onclick="filterCat(this)">${t.label}</button>`).join('');
+  renderBoneList('all', '');
+}
+
+function filterCat(btn) {
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderBoneList(btn.dataset.cat, state.searchQ);
+}
+
+function onSearch(q) {
+  state.searchQ = q;
+  const activeCat = document.querySelector('.cat-tab.active');
+  renderBoneList(activeCat ? activeCat.dataset.cat : 'all', q);
+}
+
+function renderBoneList(cat, q) {
+  const list = document.getElementById('bone-list');
+  const ql = (q||'').toLowerCase();
+
+  // グループ化
+  const groups = {};
+  for (const [key, b] of Object.entries(BONES)) {
+    const r = b.region || 'other';
+    if (cat !== 'all' && r !== cat) continue;
+    // 検索フィルタ
+    if (ql) {
+      const hay = (b.name + (b.overview||'') +
+        (b.classifications||[]).map(c=>c.name+c.desc+(c.grades||[]).map(g=>g.grade+g.name).join('')).join('')
+      ).toLowerCase();
+      if (!hay.includes(ql)) continue;
+    }
+    if (!groups[r]) groups[r] = [];
+    groups[r].push({ key, b });
+  }
+
+  let html = '';
+  for (const r of REGION_ORDER) {
+    if (!groups[r]) continue;
+    if (cat === 'all') html += `<div class="cat-section-label">${REGION_LABEL[r]}</div>`;
+    for (const {key, b} of groups[r]) {
+      const hasData = !!state.buffer.find(item => item.boneKey === key);
+      const color = ICON_COLORS[b.iconClass] || ICON_COLORS.icon_bone;
+      html += `
+        <div class="bone-row ${hasData?'has-data':''}" onclick="selectBoneIos('${key}')">
+          <span class="bone-icon-dot" style="background:${color}"></span>
+          <span class="bone-row-name">${b.name}</span>
+          <span class="bone-row-ao">${b.ao}</span>
+          ${hasData ? '<span class="bone-row-check">✓</span>' : '<span class="bone-row-chevron">›</span>'}
+        </div>`;
+    }
+  }
+  list.innerHTML = html || `<div style="padding:32px;text-align:center;color:var(--text3);font-size:14px;">該当なし</div>`;
+}
+
+// ===================================================
+//  SCREEN 2: 分類選択
+// ===================================================
+function selectBoneIos(key) {
+  const b = BONES[key];
+  if (!b) return;
+
+  const prevBone = state.bone;
+  if (prevBone !== key) {
+    state.bone = key;
+    state.selected = {};
+    state.sideSelections = {};
+  }
+
+  if (b.custom === 'spine') {
+    renderSpineScreen(b);
+  } else {
+    renderClassifScreen(b);
+  }
+
+  showScreen('classif');
+  updatePreviewBar();
+}
+
+function renderClassifScreen(b) {
+  const sc = document.getElementById('screen-classif');
+  const lrHtml = b.side ? `
+    <div class="lr-bar">
+      <span class="lr-label">左右：</span>
+      <div class="lr-seg">
+        <button class="lr-seg-btn ${state.side==='右'?'active':''}" onclick="setSideIos('右',this)">右</button>
+        <button class="lr-seg-btn ${state.side==='左'?'active':''}" onclick="setSideIos('左',this)">左</button>
+      </div>
+    </div>` : '';
+
+  const cardsHtml = (b.classifications||[]).map((cls,i) => renderClassifAccordion(cls, false)).join('');
+
+  sc.innerHTML = `
+    <div class="bone-overview-box">${b.overview}</div>
+    ${lrHtml}
+    <div class="classif-section">${cardsHtml}</div>`;
+
+  // 既存選択をハイライト復元
+  restoreGradeHighlights(b);
+}
+
+function renderClassifAccordion(cls, open) {
+  const badgeBg = {
+    'badge-red':'#ffe0de','badge-blue':'#dceeff',
+    'badge-amber':'#fff3d6','badge-green':'#d6f5e0',
+    'badge-purple':'#f0e5ff'
+  }[cls.badgeClass] || '#eee';
+
+  const rows = (cls.grades||[]).map(g => `
+    <button class="grade-btn-ios" data-cls="${cls.id}" data-val="${g.grade.replace(/"/g,'&quot;')}"
+      onclick="selectGradeIos(this,'${cls.id}','${g.grade.replace(/'/g,"\\'")}')">
+      <span class="grade-btn-grade">${g.grade}</span>
+      <span class="grade-btn-name">${g.name}</span>
+      <span class="grade-btn-desc">${g.desc}</span>
+      <span class="grade-btn-surg ${g.surg==='op'?'surg-op':g.surg==='con'?'surg-con':'surg-dep'}">${g.surg==='op'?'手術':g.surg==='con'?'保存':'症例依存'}</span>
+    </button>`).join('');
+
+  return `
+    <div class="classif-card-wrap">
+      <div class="classif-acc-header" onclick="toggleAccordion('acc-${cls.id}')">
+        <div class="classif-acc-badge" style="background:${badgeBg}">${cls.badgeLabel}</div>
+        <div class="classif-acc-info">
+          <div class="classif-acc-name">${cls.name}</div>
+          <div class="classif-acc-sub">${(cls.desc||'').substring(0,40)}…</div>
+        </div>
+        <span class="classif-acc-chevron ${open?'open':''}" id="chev-${cls.id}">›</span>
+      </div>
+      <div class="classif-acc-body ${open?'open':''}" id="acc-${cls.id}">
+        <div class="classif-desc-text">${cls.desc}</div>
+        <div class="grade-grid">${rows}</div>
+        ${cls.memo ? `<div class="memo-box">💡 ${cls.memo}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function toggleAccordion(id) {
+  const body = document.getElementById(id);
+  const chev = document.getElementById('chev-' + id.replace('acc-',''));
+  if (!body) return;
+  const opening = !body.classList.contains('open');
+  body.classList.toggle('open', opening);
+  if (chev) chev.classList.toggle('open', opening);
+}
+
+function restoreGradeHighlights(b) {
+  for (const [clsId, val] of Object.entries(state.selected)) {
+    const vals = Array.isArray(val) ? val : [val];
+    for (const v of vals) {
+      const btn = document.querySelector(`.grade-btn-ios[data-cls="${clsId}"][data-val="${v}"]`);
+      if (btn) btn.classList.add('selected');
+    }
+  }
+}
+
+function selectGradeIos(btn, cls, val) {
+  // タップトグル（iOSはCtrl不可 → 常に複数トグル可能）
+  const cur = state.selected[cls];
+  let vals = Array.isArray(cur) ? [...cur] : (cur ? [cur] : []);
+  const idx = vals.indexOf(val);
+  if (idx >= 0) {
+    vals.splice(idx, 1);
+    btn.classList.remove('selected');
+  } else {
+    vals.push(val);
+    btn.classList.add('selected');
+  }
+  if (vals.length === 0) delete state.selected[cls];
+  else if (vals.length === 1) state.selected[cls] = vals[0];
+  else state.selected[cls] = vals;
+
+  autoSyncBuffer();
+  updatePreviewBar();
+}
+
+function setSideIos(side, btn) {
+  // 現在の選択を保存
+  const b = BONES[state.bone];
+  if (b && b.side) {
+    state.sideSelections[state.bone + ':' + state.side] = JSON.parse(JSON.stringify(state.selected));
+  }
+  state.side = side;
+  document.querySelectorAll('.lr-seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // 切替先の選択を復元
+  const saved = state.sideSelections[state.bone + ':' + side];
+  state.selected = saved ? JSON.parse(JSON.stringify(saved)) : {};
+  // ボタンハイライト再描画
+  document.querySelectorAll('.grade-btn-ios').forEach(b => b.classList.remove('selected'));
+  restoreGradeHighlights(BONES[state.bone]);
+  autoSyncBuffer();
+  updatePreviewBar();
+}
+
+function updatePreviewBar() {
+  const t = buildText();
+  const bar = document.getElementById('preview-bar');
+  const txt = document.getElementById('preview-text-ios');
+  if (t) {
+    txt.textContent = t;
+    bar.classList.add('show');
+  } else {
+    txt.textContent = '— 分類を選んでください';
+    bar.classList.remove('show');
+  }
+}
+
+function hidePreviewBar() {
+  document.getElementById('preview-bar').classList.remove('show');
+}
+
+// ===================================================
+//  SCREEN 3: 結果
+// ===================================================
+function renderResultScreen() {
+  const tree = buildTreeText();
+  const treeBox = document.getElementById('result-tree');
+  treeBox.textContent = tree || '（未選択）';
+
+  const itemList = document.getElementById('result-items');
+  if (!state.buffer.length) {
+    itemList.innerHTML = '<div style="color:var(--text3);font-size:13px;">まだ損傷が追加されていません</div>';
+    return;
+  }
+  itemList.innerHTML = state.buffer.map((item, i) => `
+    <div class="result-item">
+      <div class="result-item-num">${i+1}</div>
+      <div class="result-item-text">${item.text || item}</div>
+      <button class="result-item-del" onclick="removeFromBuffer(${i})">×</button>
+    </div>`).join('');
+}
+
+// ===================================================
+//  脊椎専用 Screen 2
+// ===================================================
+function renderSpineScreen(b) {
+  const sc = document.getElementById('screen-classif');
+  const region = state.spine.region;
+  const levels = b.levels[region] || [];
+
+  const lvlBtns = levels.map(lv => {
+    const on = !!state.spine.vertebrae[lv];
+    return `<button class="spine-lvl-btn ${on?'on':''}" onclick="toggleSpineVertebra('${lv}')">${levelDisplayName(lv)}</button>`;
+  }).join('');
+
+  const sorted = Object.keys(state.spine.vertebrae).sort(compareSpineLevels);
+  const cards = sorted.map(lv => renderSpineCardIos(lv, b)).join('');
+
+  const regionTabs = [
+    {id:'cervical', label:'頸椎'},
+    {id:'thoracic', label:'胸椎'},
+    {id:'lumbar',   label:'腰椎'},
+    {id:'sacral',   label:'仙椎'},
+  ].map(t => `<button class="spine-rtab ${t.id===region?'active':''}" onclick="switchSpineRegion('${t.id}')">${t.label}</button>`).join('');
+
+  sc.innerHTML = `
+    <div class="bone-overview-box">${b.overview}</div>
+    <div class="spine-region-tabs">${regionTabs}</div>
+    <div class="spine-level-grid">${lvlBtns}</div>
+    <div id="spine-cards">${cards || '<div style="padding:16px;color:var(--text3);font-size:13px;text-align:center;">上の椎体ボタンをタップして追加</div>'}</div>`;
+}
+
+function renderSpineCardIos(level, b) {
+  const data = state.spine.vertebrae[level] || {};
+  const morph = data.morph || null;
+  const neuro = data.neuro || null;
+  const mods  = data.mods  || [];
+  const summary = buildVertebraSummary(level);
+
+  let morphHtml = '';
+  const renderMorphBtns = (subtypes, groupKey) =>
+    subtypes.map(st => {
+      const sel = morph === st.code;
+      const selCls = sel ? (groupKey==='A'?'selA':groupKey==='B'?'selB':groupKey==='C'?'selC':'sel') : '';
+      return `<button class="spine-morph-btn ${selCls}" onclick="setVertebraMorph('${level}','${st.code}')">${st.code}</button>`;
+    }).join('');
+
+  if (isC1(level)) {
+    const btns = (b.c1_classifications||[]).map(st => {
+      const sel = morph === st.code ? 'sel' : '';
+      return `<button class="spine-morph-btn ${sel}" onclick="setVertebraMorph('${level}','${st.code}')">${st.code.replace('C1-','T')}</button>`;
+    }).join('');
+    morphHtml = `<div class="spine-morph-section"><div class="spine-morph-label">Jefferson</div><div class="spine-morph-btns">${btns}</div></div>`;
+  } else if (isC2(level)) {
+    const odontBtns = (b.c2_classifications||[]).filter(s=>s.code.startsWith('Odont')).map(st => {
+      const sel = morph === st.code ? 'sel' : '';
+      return `<button class="spine-morph-btn ${sel}" onclick="setVertebraMorph('${level}','${st.code}')">${st.code.replace('Odont-','T')}</button>`;
+    }).join('');
+    const hangBtns = (b.c2_classifications||[]).filter(s=>s.code.startsWith('Hang')).map(st => {
+      const sel = morph === st.code ? 'sel' : '';
+      return `<button class="spine-morph-btn ${sel}" onclick="setVertebraMorph('${level}','${st.code}')">${st.code.replace('Hang-','')}</button>`;
+    }).join('');
+    morphHtml = `
+      <div class="spine-morph-section"><div class="spine-morph-label">歯突起 Anderson-D'Alonzo</div><div class="spine-morph-btns">${odontBtns}</div></div>
+      <div class="spine-morph-section"><div class="spine-morph-label">Hangman Levine-Edwards</div><div class="spine-morph-btns">${hangBtns}</div></div>`;
+  } else {
+    for (const gk of ['A','B','C']) {
+      const g = b.aospine_morphology[gk];
+      const btns = renderMorphBtns(g.subtypes, gk);
+      morphHtml += `<div class="spine-morph-section"><div class="spine-morph-label">${g.label}</div><div class="spine-morph-btns">${btns}</div></div>`;
+    }
+  }
+  if (morph) {
+    let found = null;
+    if (isC1(level)) found = (b.c1_classifications||[]).find(s=>s.code===morph);
+    else if (isC2(level)) found = (b.c2_classifications||[]).find(s=>s.code===morph);
+    else { for (const gk of ['A','B','C']) { const f = b.aospine_morphology[gk].subtypes.find(s=>s.code===morph); if(f){found=f;break;} } }
+    if (found) morphHtml += `<div class="spine-desc-box show"><b>${found.code}</b>：${found.desc}</div>`;
+  }
+
+  const neuroBtns = b.neuro.map(n => {
+    const sel = neuro===n.code ? 'sel' : '';
+    return `<button class="spine-morph-btn ${sel}" onclick="setVertebraNeuro('${level}','${n.code}')" title="${n.name}">${n.code}</button>`;
+  }).join('');
+  const neuroDesc = neuro ? (() => { const f=b.neuro.find(n=>n.code===neuro); return f?`<div class="spine-desc-box show spine-nm-desc"><b>${f.code}</b>：${f.desc}</div>`:''; })() : '';
+
+  const modBtns = b.modifiers.map(m => {
+    const sel = mods.includes(m.code) ? 'sel' : '';
+    return `<button class="spine-morph-btn ${sel}" onclick="toggleVertebraMod('${level}','${m.code}')" title="${m.name}">${m.code}</button>`;
+  }).join('');
+  const modDesc = mods.map(mc => { const f=b.modifiers.find(m=>m.code===mc); return f?`<div class="spine-desc-box show spine-nm-desc"><b>${f.code}</b>：${f.desc}</div>`:''; }).join('');
+
+  return `
+    <div class="spine-card">
+      <div class="spine-card-header">
+        <span class="spine-card-level">${level}</span>
+        <span class="spine-card-summary ${summary?'':'empty'}">${summary || '未指定'}</span>
+        <button class="spine-card-del" onclick="removeSpineVertebra('${level}')">×</button>
+      </div>
+      ${morphHtml}
+      <div class="spine-nm-row">
+        <div class="spine-nm-col">
+          <div class="spine-morph-label">N分類</div>
+          <div class="spine-morph-btns">${neuroBtns}</div>
+          ${neuroDesc}
+        </div>
+        <div class="spine-nm-col">
+          <div class="spine-morph-label">M分類</div>
+          <div class="spine-morph-btns">${modBtns}</div>
+          ${modDesc}
+        </div>
+      </div>
+    </div>`;
+}
+
+// 脊椎操作（spineScreenを再描画してautoSync）
+function toggleSpineVertebra(level) {
+  if (state.spine.vertebrae[level]) delete state.spine.vertebrae[level];
+  else state.spine.vertebrae[level] = { morph:null, neuro:null, mods:[] };
+  renderSpineScreen(BONES.spine);
+  autoSyncBuffer();
+  updatePreviewBar();
+}
+function removeSpineVertebra(level) {
+  delete state.spine.vertebrae[level];
+  renderSpineScreen(BONES.spine);
+  autoSyncBuffer();
+  updatePreviewBar();
+}
+function switchSpineRegion(region) {
+  state.spine.region = region;
+  renderSpineScreen(BONES.spine);
+}
+function setVertebraMorph(level, code) {
+  if (!state.spine.vertebrae[level]) state.spine.vertebrae[level]={morph:null,neuro:null,mods:[]};
+  state.spine.vertebrae[level].morph = state.spine.vertebrae[level].morph===code ? null : code;
+  renderSpineScreen(BONES.spine);
+  autoSyncBuffer();
+  updatePreviewBar();
+}
+function setVertebraNeuro(level, code) {
+  if (!state.spine.vertebrae[level]) state.spine.vertebrae[level]={morph:null,neuro:null,mods:[]};
+  state.spine.vertebrae[level].neuro = state.spine.vertebrae[level].neuro===code ? null : code;
+  renderSpineScreen(BONES.spine);
+  autoSyncBuffer();
+  updatePreviewBar();
+}
+function toggleVertebraMod(level, code) {
+  if (!state.spine.vertebrae[level]) state.spine.vertebrae[level]={morph:null,neuro:null,mods:[]};
+  const mods = state.spine.vertebrae[level].mods;
+  const idx = mods.indexOf(code);
+  if (idx>=0) mods.splice(idx,1); else mods.push(code);
+  renderSpineScreen(BONES.spine);
+  autoSyncBuffer();
+  updatePreviewBar();
+}
+
+// ===================================================
+//  共通テキスト生成（legacyと同一ロジック）
+// ===================================================
+function isC1(l) { return l.startsWith('C1'); }
+function isC2(l) { return l.startsWith('C2'); }
+function levelDisplayName(l) { return l.replace('(環椎)','').replace('(軸椎)',''); }
+function levelSection(l) {
+  if (/^C/.test(l)) return 'cervical';
+  if (/^Th/.test(l)) return 'thoracic';
+  if (/^L/.test(l)) return 'lumbar';
+  if (/^S/.test(l)) return 'sacral';
+  return 'other';
+}
+function compareSpineLevels(a, b) {
+  const order = s => {
+    const mTh = s.match(/^Th(\d+)/);
+    if (mTh) return 100 + parseInt(mTh[1],10);
+    const m = s.match(/^([CLSc])(\d+)/i);
+    if (!m) return 999;
+    return ({'C':0,'c':0,'L':200,'l':200,'S':300,'s':300}[m[1]]||999) + parseInt(m[2],10);
+  };
+  return order(a)-order(b);
+}
+function stripParen(s) { return (s||'').replace(/（[^）]*）/g,'').trim(); }
+
+function buildVertebraSummary(level) {
+  const v = state.spine.vertebrae[level];
+  if (!v) return '';
+  const parts = [];
+  if (v.morph) {
+    if (isC1(level)) parts.push(`Jefferson Fracture ${v.morph.replace('C1-','Type ')}`);
+    else if (isC2(level)) {
+      if (v.morph.startsWith('Odont-')) parts.push(`歯突起骨折 Anderson-D'Alonzo ${v.morph.replace('Odont-','Type ')}`);
+      else if (v.morph.startsWith('Hang-')) parts.push(`Hangman骨折 Levine-Edwards ${v.morph.replace('Hang-','Type ')}`);
+      else parts.push(v.morph);
+    } else { parts.push(`AO ${v.morph}`); }
+  }
+  if (v.neuro) parts.push(v.neuro);
+  if (v.mods && v.mods.length) parts.push(v.mods.join('+'));
+  if (!parts.length) return '';
+  return `${levelDisplayName(level)}: ${parts.join(' ')}`;
+}
+
+function buildSpineText() {
+  const keys = Object.keys(state.spine.vertebrae).sort(compareSpineLevels);
+  if (!keys.length) return null;
+  const sLabel = {cervical:'頸椎',thoracic:'胸椎',lumbar:'腰椎',sacral:'仙椎',other:'その他'};
+  const sOrder = ['cervical','thoracic','lumbar','sacral','other'];
+  const groups = {};
+  for (const lv of keys) {
+    const s = levelSection(lv);
+    if (!groups[s]) groups[s]=[];
+    const sum = buildVertebraSummary(lv);
+    if (sum) groups[s].push(sum);
+  }
+  const lines = ['脊椎骨折'];
+  for (const s of sOrder) {
+    if (!groups[s] || !groups[s].length) continue;
+    lines.push(`  [${sLabel[s]}]`);
+    groups[s].forEach(x => lines.push(`    ${x}`));
+  }
+  return lines.length > 1 ? lines.join('\n') : null;
+}
+
+function formatClassifEntry(b, clsId, gradeVal) {
+  if (Array.isArray(gradeVal)) return gradeVal.map(v=>formatClassifEntry(b,clsId,v)).join(', ');
+  const c = b?.classifications?.find(x=>x.id===clsId);
+  const g = stripParen(gradeVal);
+  if (clsId==='garden') return `Garden分類 ${g}`;
+  if (clsId==='pauwels') return `Pauwels分類 ${g}`;
+  const clsShort = c ? getClsShortName(c.name, clsId) : clsId;
+  const gL = g.toLowerCase(), cL = clsShort.toLowerCase();
+  if (gL.startsWith(cL+' ') || gL.startsWith(cL+'-')) return g;
+  return `${clsShort} ${g}`;
+}
+function getClsShortName(fullName, clsId) {
+  if (/^AO\/OTA/.test(fullName)) return 'AO';
+  const base = fullName.replace(/（[^）]*）/g,'').replace(/\([^)]*\)/g,'').trim();
+  return base.replace(/分類$/,'').trim() || fullName.split(/[（(]/)[0].trim();
+}
+function buildText() {
+  if (state.bone==='spine') return buildSpineText();
+  const s = state.selected;
+  const keys = Object.keys(s);
+  if (!keys.length) return null;
+  const b = BONES[state.bone];
+  const boneName = b ? b.name : '骨折';
+  const sidePrefix = (b && b.side) ? `${state.side}側 ` : '';
+  const parts = keys.map(k => formatClassifEntry(b, k, s[k]));
+  return `${sidePrefix}${boneName} (${parts.join(', ')})`;
+}
+function buildTreeText() {
+  if (!state.buffer.length) return '';
+  const regionLabel = {upper:'【上肢】',trunk:'【体幹】',lower:'【下肢】',other:'【その他】'};
+  const regionOrder = ['upper','trunk','lower','other'];
+  const groups = {};
+  for (const item of state.buffer) {
+    const r = item.region||'other';
+    if (!groups[r]) groups[r]=[];
+    groups[r].push(item);
+  }
+  for (const r in groups) groups[r].sort((a,b)=>(a.order||99)-(b.order||99));
+  const lines = ['■ 骨折・脱臼　分類記録'];
+  for (const r of regionOrder) {
+    if (!groups[r]) continue;
+    lines.push(regionLabel[r]);
+    groups[r].forEach(item => lines.push(`  ${item.text}`));
+  }
+  return lines.join('\n');
+}
+
+// ===================================================
+//  バッファ
+// ===================================================
+function autoSyncBuffer() {
+  const b = BONES[state.bone];
+  if (!b) return;
+  const bufKey = state.bone + ':' + (b.side ? state.side : 'x');
+  const t = buildText();
+  if (!t) {
+    state.buffer = state.buffer.filter(item=>(item.bufKey||'')!==bufKey);
+  } else {
+    const entry = { text:t, boneKey:state.bone, bufKey, region:b.region||'other', order:BONE_ORDER[state.bone]||99 };
+    const idx = state.buffer.findIndex(item=>(item.bufKey||'')===bufKey);
+    if (idx>=0) state.buffer[idx]=entry; else state.buffer.push(entry);
+  }
+  renderBoneList(
+    (document.querySelector('.cat-tab.active')||{}).dataset?.cat || 'all',
+    state.searchQ
+  );
+}
+function removeFromBuffer(i) {
+  state.buffer.splice(i,1);
+  renderResultScreen();
+  renderBoneList(
+    (document.querySelector('.cat-tab.active')||{}).dataset?.cat || 'all',
+    state.searchQ
+  );
+}
+function copyOutput() {
+  if (!state.buffer.length) { toast('リストが空です'); return; }
+  const text = buildTreeText();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(()=>toast('コピーしました'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value=text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast('コピーしました');
+  }
+}
+
+// ===================================================
+//  リセット
+// ===================================================
+function resetAll() {
+  state.bone=null; state.side='右'; state.selected={}; state.sideSelections={};
+  state.spine={region:'thoracic',vertebrae:{}}; state.searchQ='';
+  const si = document.getElementById('search-input');
+  if (si) si.value='';
+  showScreen('bones');
+  renderBoneList('all','');
+  hidePreviewBar();
+  toast('リセットしました');
+}
+function resetSelection() {
+  state.selected={}; state.sideSelections={};
+  state.spine={region:'thoracic',vertebrae:{}}; state.buffer=[];
+  showScreen('bones');
+  renderBoneList('all','');
+  hidePreviewBar();
+  toast('新規症例にリセットしました');
+}
+
+// ===================================================
+//  トースト
+// ===================================================
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2000);
+}
+
+// ===================================================
+//  初期化
+// ===================================================
+window.addEventListener('DOMContentLoaded', () => {
+  initBoneList();
+});
+</script>
+</body>
+</html>
