@@ -1,5 +1,5 @@
 // sw.js - 骨折分類マップ Service Worker
-const CACHE_NAME = 'fracture-map-v1';
+const CACHE_NAME = 'fracture-map-v3';
 const ASSETS = [
   './index.html',
   './manifest.json',
