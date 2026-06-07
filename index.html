@@ -7,6 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="骨折分類マップ">
+<meta name="theme-color" content="#007aff">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
 <title>骨折分類マップ v1.0.0</title>
 <style>
 :root {
@@ -2518,6 +2523,13 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('footer-tabs').classList.add('show');
   initBoneList();
 });
+
+// PWA: Service Worker 登録（GitHub Pages でも相対パスで動作）
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
