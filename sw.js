@@ -1,8 +1,9 @@
 // sw.js - 骨折分類マップ Service Worker
-const CACHE_NAME = 'fracture-map-v3';
+const CACHE_NAME = 'fracture-map-v5';
 const ASSETS = [
   './index.html',
   './manifest.json',
+  './apple-touch-icon.png',
   './icon-192.png',
   './icon-512.png',
 ];
@@ -10,7 +11,15 @@ const ASSETS = [
 // インストール: 全アセットをキャッシュ
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(
+        ASSETS.map(url =>
+          fetch(url).then(res => {
+            if (res.ok) return cache.put(url, res);
+          }).catch(() => {})
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
@@ -29,11 +38,11 @@ self.addEventListener('activate', event => {
 
 // フェッチ: キャッシュ優先（オフライン対応）
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
       return fetch(event.request).then(response => {
-        // 正常レスポンスのみキャッシュに追加
         if (response && response.status === 200 && response.type === 'basic') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
