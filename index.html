@@ -143,7 +143,12 @@ html, body {
 .screen.behind  { transform: translateX(-25%); }
 
 /* ===== SCREEN 1: 部位選択 ===== */
-#screen-bones { transform: translateX(0); }
+#screen-bones {
+  transform: translateX(0);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
 .cat-tabs {
   display: flex;
@@ -152,9 +157,6 @@ html, body {
   overflow-x: auto;
   scrollbar-width: none;
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 .cat-tabs::-webkit-scrollbar { display: none; }
 .cat-tab {
@@ -178,9 +180,7 @@ html, body {
 .search-bar {
   padding: 8px 12px;
   background: var(--bg);
-  position: sticky;
-  top: 41px;
-  z-index: 9;
+  flex-shrink: 0;
 }
 .search-bar input {
   width: 100%;
@@ -204,7 +204,12 @@ html, body {
 }
 .search-bar { position: relative; }
 
-.bone-list { padding: 6px 0 20px; }
+.bone-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px 0 20px;
+}
 .bone-row {
   display: flex;
   align-items: center;
@@ -847,6 +852,7 @@ const BONES = {
 
 clavicle: {
   name: "鎖骨骨折", iconClass:"icon-bone", ao:"AO 15",
+  region:"upper",
   overview:"鎖骨は上肢帯の支柱。骨折は外傷の5〜10%を占め最多骨折の一つ。骨幹部骨折（中1/3）が約80%。遠位端骨折（外1/3）は肩鎖靱帯損傷を伴う場合に不安定型となる。",
   side: true,
   classifications:[
@@ -986,6 +992,7 @@ humerus_distal: {
 
 radius_proximal: {
   name:"橈骨頭・頸部骨折", iconClass:"icon-forearm", ao:"AO 21",
+  region:"upper",
   overview:"橈骨頭骨折は肘関節骨折の最多。肘外側打撲・転倒後の肘外側痛で疑う。Essex-Lopresti損傷（橈骨頭骨折＋骨間膜断裂＋DRUJ不安定）の除外が重要。Morrey改訂でType IVが追加され、肘関節脱臼合併が独立した型となった。",
   side: true,
   classifications:[
@@ -1510,6 +1517,7 @@ femur_proximal: {
 
 periprosthetic_femur: {
   name:"ステム周囲骨折", iconClass:"icon-leg", ao:"-",
+  region:"lower",
   overview:"人工股関節（THA）・人工膝関節（TKA）術後のインプラント周囲骨折。Vancouver分類（大腿骨ステム周囲）が国際標準。日本ではBaba分類も使用される。インプラントの固定性（ステムの緩み）が治療方針を決定する最重要因子。",
   side: true,
   classifications:[
@@ -1795,7 +1803,7 @@ const BONE_ORDER = {
   humerus_proximal:5, humerus_shaft:6, humerus_distal:7,
   coronoid:8, radius_proximal:9, forearm_shaft:10,
   radius_distal:11, scaphoid:12,
-  spine:20, pelvis:21, acetabulum:22,
+  pelvis:20, acetabulum:21, spine:22,
   femur_head:30, femur_proximal:31, periprosthetic_femur:32,
   femur_shaft:33, femur_distal:34, patella:35,
   tibia_proximal:36, tibia_shaft:37,
@@ -1933,6 +1941,9 @@ function renderBoneList(cat, q) {
     }
     if (!groups[r]) groups[r] = [];
     groups[r].push({ key, b });
+  }
+  for (const r in groups) {
+    groups[r].sort((a, b) => (BONE_ORDER[a.key] || 99) - (BONE_ORDER[b.key] || 99));
   }
 
   let html = '';
