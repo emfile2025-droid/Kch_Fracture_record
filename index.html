@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 2026-06-13 | v1.1.0 | AO/OTA 2018 段階選択・正式コード -->
+<!-- 2026-06-13 | v1.1.1 | 更新ボタン・ヘッダー重なり修正 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
-<title>骨折分類マップ v1.1.0</title>
+<title>骨折分類マップ v1.1.1</title>
 <style>
 :root {
   --bg: #f2f2f7;
@@ -63,17 +63,23 @@ html, body {
 /* ===== ナビゲーションバー ===== */
 #nav-bar {
   flex-shrink: 0;
-  height: 44px;
+  min-height: 44px;
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  padding: 0 12px;
-  gap: 8px;
+  padding: 4px 8px 4px 4px;
+  gap: 6px;
   position: relative;
   z-index: 100;
+}
+#nav-left {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 #nav-back {
   display: none;
@@ -85,35 +91,64 @@ html, body {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 4px 6px 4px 2px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 #nav-back.show { display: flex; }
-#nav-back svg { width: 10px; height: 17px; }
+#nav-back svg { width: 10px; height: 17px; flex-shrink: 0; }
+#nav-center {
+  min-width: 0;
+  text-align: center;
+  padding: 0 2px;
+}
 #nav-title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  display: block;
   font-size: 17px;
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   pointer-events: none;
 }
 #nav-actions {
-  margin-left: auto;
   display: flex;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
+  align-items: center;
 }
 .nav-btn {
-  padding: 5px 12px;
+  padding: 5px 10px;
   border-radius: 8px;
   border: none;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.nav-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.nav-btn-sync {
+  background: var(--card2);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  padding: 5px 8px;
+}
+.nav-btn-sync.syncing {
+  color: var(--text3);
+}
+@media (max-width: 640px) {
+  #nav-title { font-size: 15px; }
+  .nav-btn { padding: 4px 6px; font-size: 11px; }
+  .nav-btn-label-long { display: none; }
+  .nav-btn-label-short { display: inline; }
+}
+@media (min-width: 641px) {
+  .nav-btn-label-short { display: none; }
 }
 .nav-btn-ghost {
   background: none;
@@ -811,14 +846,25 @@ html, body {
 
   <!-- ナビゲーションバー -->
   <div id="nav-bar">
-    <button id="nav-back" onclick="goBack()">
-      <svg viewBox="0 0 10 17" fill="none"><path d="M9 1L1 8.5L9 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      戻る
-    </button>
-    <span id="nav-title">骨折分類マップ</span>
+    <div id="nav-left">
+      <button id="nav-back" onclick="goBack()">
+        <svg viewBox="0 0 10 17" fill="none"><path d="M9 1L1 8.5L9 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        戻る
+      </button>
+    </div>
+    <div id="nav-center">
+      <span id="nav-title">骨折分類マップ</span>
+    </div>
     <div id="nav-actions">
-      <button class="nav-btn nav-btn-red" onclick="resetAll()">リセット</button>
-      <button class="nav-btn nav-btn-green" onclick="resetSelection()">新規症例</button>
+      <button type="button" id="nav-sync-btn" class="nav-btn nav-btn-sync" title="キャッシュを削除して最新版を取得">
+        <span class="nav-btn-label-long">更新</span>
+        <span class="nav-btn-label-short">↻</span>
+      </button>
+      <button type="button" class="nav-btn nav-btn-red" onclick="resetAll()">リセット</button>
+      <button type="button" class="nav-btn nav-btn-green" onclick="resetSelection()">
+        <span class="nav-btn-label-long">新規症例</span>
+        <span class="nav-btn-label-short">新規</span>
+      </button>
     </div>
   </div>
 
@@ -3252,6 +3298,104 @@ function resetSelection() {
 }
 
 // ===================================================
+//  更新・キャッシュ同期
+// ===================================================
+class AppUpdater {
+  constructor() {
+    this.syncing = false;
+    // GitHub Pages の公開URL (末尾スラッシュ)。空なら現在のオリジンを使用
+    this.github_pages_base = '';
+    this.sync_assets = ['index.html', 'sw.js', 'manifest.json'];
+    this.sync_btn = null;
+  }
+
+  resolveBaseUrl() {
+    if (this.github_pages_base) {
+      const b = this.github_pages_base.trim();
+      return b.endsWith('/') ? b : b + '/';
+    }
+    const { protocol, origin, pathname } = window.location;
+    if (protocol !== 'http:' && protocol !== 'https:') return null;
+    const dir = pathname.replace(/[^/]*$/, '');
+    return origin + dir;
+  }
+
+  setButtonBusy(busy) {
+    if (!this.sync_btn) return;
+    this.sync_btn.disabled = busy;
+    this.sync_btn.classList.toggle('syncing', busy);
+    const long = this.sync_btn.querySelector('.nav-btn-label-long');
+    const short = this.sync_btn.querySelector('.nav-btn-label-short');
+    if (long) long.textContent = busy ? '更新中' : '更新';
+    if (short) short.textContent = busy ? '…' : '↻';
+  }
+
+  async clearAllCaches() {
+    if (!('caches' in window)) return;
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  }
+
+  async unregisterServiceWorkers() {
+    if (!('serviceWorker' in navigator)) return;
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.unregister()));
+  }
+
+  async prefetchFromNetwork(baseUrl) {
+    const ts = Date.now();
+    const results = await Promise.allSettled(
+      this.sync_assets.map(async file => {
+        const url = `${baseUrl}${file}?_sync=${ts}`;
+        const res = await fetch(url, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+        });
+        if (!res.ok) throw new Error(`${file} (${res.status})`);
+        return file;
+      })
+    );
+    const ok = results.filter(r => r.status === 'fulfilled');
+    if (!ok.length) {
+      const err = results.find(r => r.status === 'rejected');
+      throw new Error(err?.reason?.message || 'ネットワークエラー');
+    }
+    return ok.length;
+  }
+
+  async syncAndReload() {
+    if (this.syncing) return;
+    const base = this.resolveBaseUrl();
+    if (!base) {
+      toast('file:// では更新できません。GitHub Pages の URL で開いてください');
+      return;
+    }
+    this.syncing = true;
+    this.setButtonBusy(true);
+    toast('キャッシュ削除・同期中...');
+    try {
+      await this.unregisterServiceWorkers();
+      await this.clearAllCaches();
+      await this.prefetchFromNetwork(base);
+      toast('最新版を読み込みます');
+      window.location.replace(`${base}index.html?_sync=${Date.now()}`);
+    } catch (e) {
+      this.syncing = false;
+      this.setButtonBusy(false);
+      toast('更新失敗: ' + (e.message || '接続できません'));
+    }
+  }
+
+  bind() {
+    this.sync_btn = document.getElementById('nav-sync-btn');
+    if (!this.sync_btn) return;
+    this.sync_btn.addEventListener('click', () => this.syncAndReload());
+  }
+}
+
+const appUpdater = new AppUpdater();
+
+// ===================================================
 //  トースト
 // ===================================================
 function toast(msg) {
@@ -3264,15 +3408,24 @@ function toast(msg) {
 //  初期化
 // ===================================================
 window.addEventListener('DOMContentLoaded', () => {
+  // 同期後のクエリパラメータをURLから除去
+  if (window.location.search.includes('_sync=')) {
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('_sync');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch (e) { /* ignore */ }
+  }
   // フッタータブを最初から表示
   document.getElementById('footer-tabs').classList.add('show');
+  appUpdater.bind();
   initBoneList();
 });
 
 // PWA: Service Worker 登録（GitHub Pages でも相対パスで動作）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
   });
 }
 </script>
